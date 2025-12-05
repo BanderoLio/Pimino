@@ -1,4 +1,5 @@
 build/
+var/
 
 # C++ objects and libs
 *.slo

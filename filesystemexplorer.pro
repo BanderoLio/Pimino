@@ -17,40 +17,40 @@ TARGET = filesystemexplorer
 TEMPLATE = app
 
 SOURCES += \
-    main.cpp \
-    filesystemmodel.cpp \
-    linenumbermodel.cpp \
+    src/main.cpp \
+    src/filesystemmodel.cpp \
+    src/linenumbermodel.cpp \
 
 HEADERS += \
-    filesystemmodel.h \
-    linenumbermodel.h \
+    src/filesystemmodel.h \
+    src/linenumbermodel.h \
 
 qml_resources.files = \
-    qmldir \
-    Main.qml \
-    qml/About.qml \
-    qml/Colors.qml \
-    qml/Editor.qml \
-    qml/MyMenu.qml \
-    qml/Sidebar.qml \
-    qml/MyMenuBar.qml \
-    qml/ResizeButton.qml \
-    qml/FileSystemView.qml \
-    qml/WindowDragHandler.qml \
+    src/qmldir \
+    src/Main.qml \
+    src/qml/About.qml \
+    src/qml/Colors.qml \
+    src/qml/Editor.qml \
+    src/qml/MyMenu.qml \
+    src/qml/Sidebar.qml \
+    src/qml/MyMenuBar.qml \
+    src/qml/ResizeButton.qml \
+    src/qml/FileSystemView.qml \
+    src/qml/WindowDragHandler.qml \
 
 qml_resources.prefix = /qt/qml/FileSystemModule
 
 theme_resources.files = \
-    icons/folder_closed.svg \
-    icons/folder_open.svg \
-    icons/generic_file.svg \
-    icons/globe.svg \
-    icons/info_sign.svg \
-    icons/light_bulb.svg \
-    icons/read.svg \
-    icons/resize.svg \
-    icons/qt_logo.svg \
-    icons/app_icon.svg
+    src/icons/folder_closed.svg \
+    src/icons/folder_open.svg \
+    src/icons/generic_file.svg \
+    src/icons/globe.svg \
+    src/icons/info_sign.svg \
+    src/icons/light_bulb.svg \
+    src/icons/read.svg \
+    src/icons/resize.svg \
+    src/icons/qt_logo.svg \
+    src/icons/app_icon.svg
 
 theme_resources.prefix = /qt/qml/FileSystemModule
 

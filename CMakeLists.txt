@@ -4,6 +4,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(Pimino VERSION 1.0 LANGUAGES CXX)
 
+# Generate compile_commands.json for IDE support
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if (ANDROID OR IOS)
     message(FATAL_ERROR "Platform is not supported")
     return()
@@ -11,20 +14,37 @@ endif ()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Svg)
 
-find_package(FluidSynth REQUIRED)
+find_package(FluidSynth CONFIG REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
-target_sources(pimino
-  PRIVATE
-    CMakePresets.json
-)
-
 qt_add_executable(pimino
-    main.cpp
+    src/main.cpp
+    src/core/app.cpp
 )
 
-set_source_files_properties(qml/Colors.qml
+# Add src directory to include path so generated files can find headers
+target_include_directories(pimino PRIVATE src)
+
+# Add FluidSynth include directories if needed
+if(TARGET FluidSynth::libfluidsynth)
+    # Modern CMake target-based approach
+    # Paths are handled automatically by the target
+    get_target_property(FLUIDSYNTH_INCLUDE_DIR FluidSynth::libfluidsynth INTERFACE_INCLUDE_DIRECTORIES)
+    if(FLUIDSYNTH_INCLUDE_DIR)
+        message(STATUS "FluidSynth include dir: ${FLUIDSYNTH_INCLUDE_DIR}")
+    endif()
+elseif(FLUIDSYNTH_INCLUDE_DIRS)
+    target_include_directories(pimino PRIVATE ${FLUIDSYNTH_INCLUDE_DIRS})
+    message(STATUS "FluidSynth include dirs: ${FLUIDSYNTH_INCLUDE_DIRS}")
+elseif(FluidSynth_INCLUDE_DIRS)
+    target_include_directories(pimino PRIVATE ${FluidSynth_INCLUDE_DIRS})
+    message(STATUS "FluidSynth include dirs: ${FluidSynth_INCLUDE_DIRS}")
+else()
+    message(WARNING "FluidSynth not found. Please install it via vcpkg: vcpkg install fluidsynth")
+endif()
+
+set_source_files_properties(src/qml/Colors.qml
     PROPERTIES
         QT_QML_SINGLETON_TYPE TRUE
 )
@@ -32,32 +52,38 @@ set_source_files_properties(qml/Colors.qml
 qt_add_qml_module(pimino
     URI FileSystemModule
     QML_FILES
-        "Main.qml"
-        "qml/About.qml"
-        "qml/Colors.qml"
-        "qml/Editor.qml"
-        "qml/FileSystemView.qml"
-        "qml/MyMenu.qml"
-        "qml/MyMenuBar.qml"
-        "qml/Sidebar.qml"
-        "qml/ResizeButton.qml"
-        "qml/WindowDragHandler.qml"
+        "src/Main.qml"
+        "src/qml/About.qml"
+        "src/qml/Colors.qml"
+        "src/qml/Editor.qml"
+        "src/qml/FileSystemView.qml"
+        "src/qml/MyMenu.qml"
+        "src/qml/MyMenuBar.qml"
+        "src/qml/Sidebar.qml"
+        "src/qml/ResizeButton.qml"
+        "src/qml/WindowDragHandler.qml"
     RESOURCES
-        "icons/folder_closed.svg"
-        "icons/folder_open.svg"
-        "icons/generic_file.svg"
-        "icons/globe.svg"
-        "icons/info_sign.svg"
-        "icons/light_bulb.svg"
-        "icons/read.svg"
-        "icons/resize.svg"
-        "icons/qt_logo.svg"
-        "icons/app_icon.svg"
+        "src/icons/folder_closed.svg"
+        "src/icons/folder_open.svg"
+        "src/icons/generic_file.svg"
+        "src/icons/globe.svg"
+        "src/icons/info_sign.svg"
+        "src/icons/light_bulb.svg"
+        "src/icons/read.svg"
+        "src/icons/resize.svg"
+        "src/icons/qt_logo.svg"
+        "src/icons/app_icon.svg"
     SOURCES
-        filesystemmodel.cpp
-        filesystemmodel.h
-        linenumbermodel.cpp
-        linenumbermodel.h
+        src/filesystemmodel.cpp
+        src/filesystemmodel.h
+        src/linenumbermodel.cpp
+        src/linenumbermodel.h
+        src/core/app.h
+        src/external/fluidsettings.h src/external/fluidsettings.cpp
+        src/external/fluidsynth.h src/external/fluidsynth.cpp
+        src/external/fluidaudiodriver.h src/external/fluidaudiodriver.cpp
+        src/core/soundengine.h src/core/soundengine.cpp
+        SOURCES src/external/exceptions/soundfontexception.h src/external/exceptions/soundfontexception.cpp
 )
 
 target_link_libraries(pimino
@@ -67,6 +93,7 @@ target_link_libraries(pimino
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Svg
+        FluidSynth::libfluidsynth
 )
 
 set_target_properties(pimino
