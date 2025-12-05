@@ -16,6 +16,7 @@ private:
   FluidSettings m_settings;
   FluidSynth m_synth;
   FluidAudioDriver m_adriver;
+  bool m_isSFLoaded{};
 };
 
 #endif // SOUNDENGINE_H

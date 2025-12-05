@@ -2,6 +2,7 @@ build/
 var/
 .vscode/
 .idea/
+.cache/
 .qtcreator/
 
 # C++ objects and libs
