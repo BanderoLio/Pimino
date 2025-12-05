@@ -6,31 +6,46 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <fluidsynth.h>
-#include <thread>
 
 #include <core/soundengine.h>
+#include <external/fluidmidiplayer.h>
 
 #include "core/app.h"
 
 int main(int argc, char *argv[]) {
   App application(argc, argv);
-  SoundEngine sEngine{};
-  // this sf can be loaded from https://www.polyphone.io/en/soundfonts/pianos/513-yamaha-cfx-studio-grand-v2
-  sEngine.loadSoundFound("./var/Yamaha CFX Grand.sf2");
-  qDebug() << "Playing some notes...";
-  for (int i = 0; i < 12; ++i) {
-    int key = 60 + i;   // Middle C and up
-    int velocity = 100; // A moderate velocity
 
-    sEngine.noteOn(key, velocity); // Channel 0, note, velocity
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(500)); // Play for 0.5 seconds
-    sEngine.noteOff(key);                // Stop the note
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(100)); // Short pause between notes
+  SoundEngine sEngine{};
+
+  // Загрузка SoundFont
+  // this sf can be loaded from
+  // https://www.polyphone.io/en/soundfonts/pianos/513-yamaha-cfx-studio-grand-v2
+  if (sEngine.loadSoundFound("./var/Yamaha CFX Grand.sf2")) {
+    qDebug() << "SoundFont loaded successfully";
+  } else {
+    qWarning() << "Failed to load SoundFont. MIDI input will work, but no "
+                  "sound will be produced.";
   }
 
-  qDebug() << "Cleaning up...";
+  qDebug() << "========================================";
+  qDebug() << "MIDI input is ENABLED and ready!";
+  qDebug() << "Connect your MIDI keyboard and start playing.";
+  qDebug() << "The application will listen for MIDI events.";
+  qDebug() << "Press Ctrl+C or close the window to exit.";
+  qDebug() << "========================================";
+  FluidMidiPlayer player(sEngine.synth());
+  qDebug() << "========================================";
+
+  player.addMidi("./var/gimn.mid");
+  player.addMidi("./var/pirate.mid");
+  qDebug() << "========================================";
+  player.play();
+  qDebug() << "========================================";
+  player.join();
+  qDebug() << "========================================";
+
+  // Загружаем UI и запускаем event loop
+  // SoundEngine остается активным и обрабатывает MIDI события в фоне
   application.loadUI();
   return application.exec();
 }

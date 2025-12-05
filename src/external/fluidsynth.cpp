@@ -1,11 +1,13 @@
 #include "fluidsynth.h"
 
 #include <external/exceptions/soundfontexception.h>
+#include <fluidsynth/synth.h>
 
 FluidSynth::FluidSynth(const FluidSettings &settings)
     : m_settings(settings), m_synth(new_fluid_synth(settings.settings())) {
   if (!m_synth)
     throw std::runtime_error("Failed to create FluidSynth synthesizer.");
+  fluid_synth_set_gain(synth(), 3.0f);
 }
 
 FluidSynth::~FluidSynth() { delete_fluid_synth(m_synth); }

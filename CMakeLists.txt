@@ -82,6 +82,8 @@ qt_add_qml_module(pimino
         src/external/fluidsettings.h src/external/fluidsettings.cpp
         src/external/fluidsynth.h src/external/fluidsynth.cpp
         src/external/fluidaudiodriver.h src/external/fluidaudiodriver.cpp
+        src/external/fluidmididriver.h src/external/fluidmididriver.cpp
+        src/external/fluidmidiplayer.h src/external/fluidmidiplayer.cpp
         src/core/soundengine.h src/core/soundengine.cpp
         SOURCES src/external/exceptions/soundfontexception.h src/external/exceptions/soundfontexception.cpp
 )
