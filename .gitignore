@@ -1,5 +1,8 @@
 build/
 var/
+.vscode/
+.idea/
+.qtcreator/
 
 # C++ objects and libs
 *.slo

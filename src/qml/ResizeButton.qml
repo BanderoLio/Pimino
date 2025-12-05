@@ -3,7 +3,7 @@
 
 import QtQml
 import QtQuick.Controls
-import FileSystemModule
+import Pimino
 
 Button {
     required property ApplicationWindow resizeWindow

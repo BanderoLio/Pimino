@@ -50,7 +50,7 @@ set_source_files_properties(src/qml/Colors.qml
 )
 
 qt_add_qml_module(pimino
-    URI FileSystemModule
+    URI Pimino
     QML_FILES
         "src/Main.qml"
         "src/qml/About.qml"

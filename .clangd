@@ -1,0 +1,4 @@
+CompileFlags:
+  Remove: [-mno-direct-extern-access]
+  Add: [-Wno-unknown-arguments]
+

@@ -4,7 +4,7 @@
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Controls.Basic
-import FileSystemModule
+import Pimino
 
 pragma ComponentBehavior: Bound
 

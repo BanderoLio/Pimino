@@ -8,14 +8,14 @@
 
 #include <stdexcept>
 
-class FluidAudioDriver
-{
+class FluidAudioDriver {
 public:
-    FluidAudioDriver(const FluidSettings& settings, const FluidSynth& synth);
-    ~FluidAudioDriver();
-    fluid_audio_driver_t* adriver() const;
+  FluidAudioDriver(const FluidSettings &settings, const FluidSynth &synth);
+  ~FluidAudioDriver();
+  fluid_audio_driver_t *adriver() const;
+
 private:
-    fluid_audio_driver_t* m_adriver;
+  fluid_audio_driver_t *m_adriver;
 };
 
 #endif // FLUIDAUDIODRIVER_H

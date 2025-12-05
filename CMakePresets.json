@@ -42,11 +42,7 @@
         "CMAKE_TOOLCHAIN_FILE": {
           "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
           "type": "FILEPATH"
-        },
-        "CMAKE_MAKE_PROGRAM": {
-          "value": "$env{LOCALAPPDATA}/Microsoft/WinGet/Packages/Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe/ninja.exe",
-          "type": "FILEPATH"
-        }
+        } 
       }
     },
     {

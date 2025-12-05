@@ -5,14 +5,14 @@
 
 #include <stdexcept>
 
-class FluidSettings
-{
+class FluidSettings {
 public:
-    FluidSettings();
-    ~FluidSettings();
-    fluid_settings_t* settings() const;
+  FluidSettings();
+  ~FluidSettings();
+  fluid_settings_t *settings() const;
+
 private:
-    fluid_settings_t* m_settings;
+  fluid_settings_t *m_settings;
 };
 
 #endif // FLUIDSETTINGS_H

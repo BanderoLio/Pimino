@@ -10,10 +10,10 @@ QT += quick
 CONFIG += qmltypes
 
 QML_IMPORT_PATH = $$pwd/.
-QML_IMPORT_NAME = FileSystemModule
+QML_IMPORT_NAME = Pimino
 QML_IMPORT_MAJOR_VERSION = 1
 
-TARGET = filesystemexplorer
+TARGET = pimino
 TEMPLATE = app
 
 SOURCES += \
@@ -38,7 +38,7 @@ qml_resources.files = \
     src/qml/FileSystemView.qml \
     src/qml/WindowDragHandler.qml \
 
-qml_resources.prefix = /qt/qml/FileSystemModule
+qml_resources.prefix = /qt/qml/Pimino
 
 theme_resources.files = \
     src/icons/folder_closed.svg \
@@ -52,9 +52,9 @@ theme_resources.files = \
     src/icons/qt_logo.svg \
     src/icons/app_icon.svg
 
-theme_resources.prefix = /qt/qml/FileSystemModule
+theme_resources.prefix = /qt/qml/Pimino
 
 RESOURCES += qml_resources theme_resources
 
-target.path = $$[QT_INSTALL_EXAMPLES]/quickcontrols/filesystemexplorer
+target.path = $$[QT_INSTALL_EXAMPLES]/quickcontrols/pimino
 INSTALLS += target

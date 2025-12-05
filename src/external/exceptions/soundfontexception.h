@@ -3,11 +3,9 @@
 
 #include <stdexcept>
 
-
-class SoundFontException : public std::runtime_error
-{
+class SoundFontException : public std::runtime_error {
 public:
-    SoundFontException();
+  SoundFontException();
 };
 
 #endif // SOUNDFONTEXCEPTION_H

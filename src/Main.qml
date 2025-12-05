@@ -3,7 +3,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import FileSystemModule
+import Pimino
 
 pragma ComponentBehavior: Bound
 

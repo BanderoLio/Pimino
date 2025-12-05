@@ -4,7 +4,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
-import FileSystemModule
+import Pimino
 
 // The MenuBar also serves as a controller for our window as we don't use any decorations.
 MenuBar {
