@@ -24,4 +24,8 @@ void FluidMidiPlayer::play() {
   }
 }
 
-void FluidMidiPlayer::join() { fluid_player_join(m_player); }
+void FluidMidiPlayer::join() {
+  auto status = fluid_player_get_status(m_player);
+  if (status == FLUID_PLAYER_PLAYING || status == FLUID_PLAYER_STOPPING)
+    fluid_player_join(m_player);
+}

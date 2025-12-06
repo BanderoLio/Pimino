@@ -14,6 +14,9 @@ public:
 
   fluid_synth_t *synth() const;
 
+  int gain() const;
+  void setGain(float gain);
+
   int loadSoundFound(std::string_view path);
 
   void noteOn(int key, int velocity, int channel = 0);
@@ -22,6 +25,7 @@ public:
 private:
   FluidSettings m_settings;
   fluid_synth_t *m_synth;
+  float m_gain;
 };
 
 #endif // FLUIDSYNTH_H

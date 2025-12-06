@@ -2,17 +2,29 @@
 
 #include <external/exceptions/soundfontexception.h>
 #include <fluidsynth/synth.h>
+#include <qdebug.h>
+#include <qlogging.h>
 
 FluidSynth::FluidSynth(const FluidSettings &settings)
     : m_settings(settings), m_synth(new_fluid_synth(settings.settings())) {
   if (!m_synth)
     throw std::runtime_error("Failed to create FluidSynth synthesizer.");
-  fluid_synth_set_gain(synth(), 3.0f);
+  setGain(1.0f);
 }
 
 FluidSynth::~FluidSynth() { delete_fluid_synth(m_synth); }
 
 fluid_synth_t *FluidSynth::synth() const { return m_synth; }
+
+int FluidSynth::gain() const { return m_gain; }
+
+void FluidSynth::setGain(float gain) {
+  if (gain < .0f || gain > 5.0f) {
+    qWarning() << "setGain: value probably can cause problems";
+  }
+  fluid_synth_set_gain(m_synth, gain);
+  m_gain = gain;
+}
 
 int FluidSynth::loadSoundFound(std::string_view path) {
   // 1 - reset presets

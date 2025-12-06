@@ -7,8 +7,9 @@ public:
   FluidMidiPlayer(const FluidSynth &);
   ~FluidMidiPlayer();
   void addMidi(const char *path);
-   void play();
-   void join();
+  void play();
+  void join();
+
 private:
   fluid_player_t *m_player;
 };

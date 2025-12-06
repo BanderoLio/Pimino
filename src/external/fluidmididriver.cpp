@@ -1,8 +1,5 @@
 #include "fluidmididriver.h"
 
-// Callback функция для обработки MIDI событий
-// Использует стандартную обработку fluidsynth, которая правильно обрабатывает
-// Note On/Note Off и полифонию автоматически
 static int handle_midi_event(void *data, fluid_midi_event_t *event) {
   fluid_synth_t *synth = static_cast<fluid_synth_t *>(data);
   // fluid_synth_handle_midi_event правильно обрабатывает все MIDI события,

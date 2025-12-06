@@ -17,7 +17,6 @@ int main(int argc, char *argv[]) {
 
   SoundEngine sEngine{};
 
-  // Загрузка SoundFont
   // this sf can be loaded from
   // https://www.polyphone.io/en/soundfonts/pianos/513-yamaha-cfx-studio-grand-v2
   if (sEngine.loadSoundFound("./var/Yamaha CFX Grand.sf2")) {
@@ -36,17 +35,15 @@ int main(int argc, char *argv[]) {
   FluidMidiPlayer player(sEngine.synth());
   qDebug() << "========================================";
 
-  player.addMidi("./var/corob.mid");
-  player.addMidi("./var/gimn.mid");
-  player.addMidi("./var/pirate.mid");
+  // player.addMidi("./var/corob.mid");
+  // player.addMidi("./var/gimn.mid");
+  // player.addMidi("./var/pirate.mid");
   qDebug() << "========================================";
   player.play();
   qDebug() << "========================================";
   player.join();
   qDebug() << "========================================";
 
-  // Загружаем UI и запускаем event loop
-  // SoundEngine остается активным и обрабатывает MIDI события в фоне
   application.loadUI();
   return application.exec();
 }
