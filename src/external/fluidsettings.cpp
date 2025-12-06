@@ -8,19 +8,26 @@ FluidSettings::FluidSettings() : m_settings(new_fluid_settings()) {
   // По умолчанию fluidsynth будет автоматически находить MIDI устройства
 #ifdef __linux__
   fluid_settings_setstr(m_settings, "midi.driver", "alsa_seq");
+  fluid_settings_setstr(m_settings, "audio.driver", "alsa");
 #endif
 
   // Настройка полифонии (количество одновременно звучащих нот)
-  // Увеличено до 512 для поддержки большого количества одновременно нажатых
-  // клавиш Если нужно больше, можно увеличить до 1024 или выше
-  // fluid_settings_setint(m_settings, "synth.polyphony", 512);
+  fluid_settings_setint(m_settings, "synth.polyphony", 1024);
 
-  // // Настройка качества звука
-  // fluid_settings_setint(m_settings, "synth.sample-rate", 44100);
+  // Настройка качества звука
+  fluid_settings_setint(m_settings, "synth.sample-rate", 44100);
 
-  // // Включение реверберации и хоруса для более реалистичного звука
-  // fluid_settings_setnum(m_settings, "synth.reverb.active", 1);
-  // fluid_settings_setnum(m_settings, "synth.chorus.active", 1);
+  // Настройка аудио буфера для предотвращения пропадания звука
+  // period-size: размер одного периода в сэмплах (меньше = меньше задержка, но больше нагрузка)
+  // periods: количество периодов в буфере (больше = более стабильно, но больше задержка)
+  // Для стабильной работы при большой нагрузке используем больший буфер
+  // Увеличенный буфер поможет избежать пропадания звука при быстрой игре
+  fluid_settings_setint(m_settings, "audio.period-size", 2048);
+  fluid_settings_setint(m_settings, "audio.periods", 8);
+
+  // Включение реверберации и хоруса для более реалистичного звука
+  fluid_settings_setnum(m_settings, "synth.reverb.active", 1);
+  fluid_settings_setnum(m_settings, "synth.chorus.active", 1);
 }
 
 FluidSettings::~FluidSettings() { delete_fluid_settings(m_settings); }

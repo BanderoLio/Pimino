@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
   FluidMidiPlayer player(sEngine.synth());
   qDebug() << "========================================";
 
+  player.addMidi("./var/corob.mid");
   player.addMidi("./var/gimn.mid");
   player.addMidi("./var/pirate.mid");
   qDebug() << "========================================";
