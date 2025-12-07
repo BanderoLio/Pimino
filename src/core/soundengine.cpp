@@ -1,5 +1,6 @@
 #include "soundengine.h"
 #include "external/fluidsynth.h"
+#include <fluidsynth/settings.h>
 #include <qdebug.h>
 #include <qlogging.h>
 
@@ -34,6 +35,11 @@ void SoundEngine::setMidiDriver(const char *driver) {
 
 void SoundEngine::setMidiPort(const char *portname) {
   fluid_settings_setstr(m_settings.settings(), "midi.portname", portname);
+}
+
+void SoundEngine::setMidiAutoconnect(bool val) {
+  fluid_settings_setint(m_settings.settings(), "midi.autoconnect", 1);
+  // FluidMidiPlayer p()
 }
 
 const FluidSynth &SoundEngine::synth() { return m_synth; }

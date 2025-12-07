@@ -25,6 +25,7 @@ qt_add_executable(pimino
 
 # Add src directory to include path so generated files can find headers
 target_include_directories(pimino PRIVATE src)
+target_include_directories(pimino PRIVATE src/core)
 
 # Add FluidSynth include directories if needed
 if(TARGET FluidSynth::libfluidsynth)
@@ -44,24 +45,13 @@ else()
     message(WARNING "FluidSynth not found. Please install it via vcpkg: vcpkg install fluidsynth")
 endif()
 
-set_source_files_properties(src/qml/Colors.qml
-    PROPERTIES
-        QT_QML_SINGLETON_TYPE TRUE
-)
-
 qt_add_qml_module(pimino
     URI Pimino
     QML_FILES
         "src/Main.qml"
-        "src/qml/About.qml"
-        "src/qml/Colors.qml"
-        "src/qml/Editor.qml"
-        "src/qml/FileSystemView.qml"
-        "src/qml/MyMenu.qml"
-        "src/qml/MyMenuBar.qml"
-        "src/qml/Sidebar.qml"
-        "src/qml/ResizeButton.qml"
-        "src/qml/WindowDragHandler.qml"
+        "src/qml/PianoKey.qml"
+        "src/qml/PianoKeyboard.qml"
+        "src/qml/ControlPanel.qml"
     RESOURCES
         "src/icons/folder_closed.svg"
         "src/icons/folder_open.svg"
@@ -79,6 +69,10 @@ qt_add_qml_module(pimino
         src/linenumbermodel.cpp
         src/linenumbermodel.h
         src/core/app.h
+        src/core/soundengineqml.h
+        src/core/soundengineqml.cpp
+        src/core/pianocontroller.cpp
+        src/core/pianocontroller.h
         src/external/fluidsettings.h src/external/fluidsettings.cpp
         src/external/fluidsynth.h src/external/fluidsynth.cpp
         src/external/fluidaudiodriver.h src/external/fluidaudiodriver.cpp

@@ -14,6 +14,7 @@ public:
   void noteOff(int key, int channel = 0);
   void setMidiDriver(const char *driver);
   void setMidiPort(const char *portname);
+  void setMidiAutoconnect(bool val);
 
   // TODO FIXME remove, test purpuses
   const FluidSynth& synth();
