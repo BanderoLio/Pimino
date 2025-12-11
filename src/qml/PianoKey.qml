@@ -32,19 +32,19 @@ Rectangle {
             position: 0.0
             color: {
                 if (isBlack) {
-                    return isPressed ? "#0a0a0a" : (mouseArea.containsMouse ? "#1a1a1a" : "#000000")
+                    return key.isPressed ? "#0a0a0a" : (mouseArea.containsMouse ? "#1a1a1a" : "#000000")
                 } else {
-                    return isPressed ? "#d0d0d0" : (mouseArea.containsMouse ? "#f0f0f0" : "#ffffff")
+                    return key.isPressed ? "#d0d0d0" : (mouseArea.containsMouse ? "#f0f0f0" : "#ffffff")
                 }
             }
         }
         GradientStop {
             position: 1.0
             color: {
-                if (isBlack) {
-                    return isPressed ? "#1a1a1a" : (mouseArea.containsMouse ? "#2a2a2a" : "#0a0a0a")
+                if (key.isBlack) {
+                    return key.isPressed ? "#1a1a1a" : (mouseArea.containsMouse ? "#2a2a2a" : "#0a0a0a")
                 } else {
-                    return isPressed ? "#c0c0c0" : (mouseArea.containsMouse ? "#e8e8e8" : "#f8f8f8")
+                    return key.isPressed ? "#c0c0c0" : (mouseArea.containsMouse ? "#e8e8e8" : "#f8f8f8")
                 }
             }
         }
@@ -71,33 +71,33 @@ Rectangle {
         anchors.topMargin: 2
         color: "#20000000"
         radius: parent.radius
-        visible: !isBlack && !isPressed
+        visible: !key.isBlack && !key.isPressed
         z: -1
     }
     
     // Текст с нотами и клавишами
     Column {
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: isBlack ? -5 : 0
+        anchors.verticalCenterOffset: key.isBlack ? -5 : 0
         spacing: 3
-        visible: !isBlack || key.height > 50
+        visible: !key.isBlack || key.height > 50
         
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: fullNoteName
-            color: isBlack ? "#fff" : "#000"
+            text: key.fullNoteName
+            color: key.isBlack ? "#fff" : "#000"
             font.pixelSize: Math.max(14, Math.min(key.height * 0.2, key.width * 0.125))
             font.bold: true
             style: Text.Outline
-            styleColor: isBlack ? "#000" : "#fff"
+            styleColor: key.isBlack ? "#000" : "#fff"
             elide: Text.ElideNone
             wrapMode: Text.NoWrap
         }
         
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "[" + keyboardKey + "]"
-            color: isBlack ? "#bbb" : "#666"
+            text: "[" + key.keyboardKey + "]"
+            color: key.isBlack ? "#bbb" : "#666"
             font.pixelSize: Math.max(10, Math.min(key.height * 0.14, key.width * 0.18))
             font.bold: false
             elide: Text.ElideNone
@@ -122,7 +122,7 @@ Rectangle {
             key.isPressed = false
             key.released()
             if (onNoteOff) {
-                onNoteOff(midiNote)
+                onNoteOff(key.midiNote)
             }
         }
         
@@ -131,7 +131,7 @@ Rectangle {
                 key.isPressed = false
                 key.released()
                 if (onNoteOff) {
-                    onNoteOff(midiNote)
+                    onNoteOff(key.midiNote)
                 }
             }
         }

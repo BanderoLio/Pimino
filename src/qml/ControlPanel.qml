@@ -75,7 +75,7 @@ Rectangle {
                 
                 Text {
                     anchors.centerIn: parent
-                    text: "C" + currentOctave
+                    text: "C" + controlPanel.currentOctave
                     color: "#D4BE98"
                     font.pixelSize: 20
                     font.bold: true
@@ -115,7 +115,7 @@ Rectangle {
         }
         
         Text {
-            text: "Диапазон: C" + minOctave + " - C" + maxOctave
+            text: "Диапазон: C" + controlPanel.minOctave + " - C" + controlPanel.maxOctave
             color: "#888"
             font.pixelSize: 11
             Layout.alignment: Qt.AlignHCenter
