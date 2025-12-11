@@ -20,7 +20,7 @@ jobs:
           version: '6.8.0'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'linux_gcc_64'
-          aqtextensions: 'exclude-qtwebengine exclude-qtpdf'
+          extra: '--aqtextensions exclude-qtwebengine exclude-qtpdf --timeout 600'
           cache: 'true'
 
       - name: Install system dependencies
@@ -166,7 +166,7 @@ jobs:
           version: '6.8.0'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'win64_msvc2022_64'
-          aqtextensions: 'exclude-qtwebengine exclude-qtpdf'
+          extra: '--aqtextensions exclude-qtwebengine exclude-qtpdf --timeout 600'
           cache: 'true'
 
       - name: Configure CMake
