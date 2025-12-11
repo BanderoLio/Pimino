@@ -17,7 +17,7 @@ jobs:
       - name: Setup Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.8.0'
+          version: '6.7.2'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'linux_gcc_64'
           extra: '--aqtextensions exclude-qtwebengine exclude-qtpdf --timeout 600'
@@ -163,7 +163,7 @@ jobs:
       - name: Setup Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.8.0'
+          version: '6.7.2'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'win64_msvc2022_64'
           extra: '--aqtextensions exclude-qtwebengine exclude-qtpdf --timeout 600'
