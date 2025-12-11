@@ -14,18 +14,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          arch: 'linux_x64'
+          cache: 'true'
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
             cmake \
             ninja-build \
-            qt6-base-dev \
-            qt6-declarative-dev \
-            qt6-quickcontrols2-dev \
             libfluidsynth-dev \
-            git
+            git \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libxcb-xinerama0
 
       - name: Setup vcpkg
         uses: actions/checkout@v4
@@ -42,10 +50,12 @@ jobs:
       - name: Configure CMake
         env:
           VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
           cmake -B build -S . \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" \
             -G Ninja
 
       - name: Build
@@ -57,49 +67,58 @@ jobs:
           cmake --install build --prefix staging
 
       - name: Deploy Qt dependencies
+        env:
+          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
           mkdir -p staging/bin staging/qml staging/plugins
           
-          # Используем windeployqt-подобный подход для Linux
-          # Копируем необходимые Qt библиотеки
-          ldd staging/bin/pimino | grep "libQt6" | awk '{print $3}' | while read lib; do
-            if [ -f "$lib" ]; then
-              cp "$lib" staging/bin/
+          QT_DIR="${{ env.Qt6_DIR }}"
+          echo "Qt6 directory: $QT_DIR"
+          
+          # Используем linuxdeployqt или копируем вручную
+          # Копируем необходимые Qt библиотеки из установленного Qt
+          if [ -d "$QT_DIR/lib" ]; then
+            # Копируем Qt библиотеки
+            ldd staging/bin/pimino | grep "libQt6" | awk '{print $3}' | while read lib; do
+              if [ -f "$lib" ]; then
+                cp "$lib" staging/bin/
+              fi
+            done
+            
+            # Если библиотеки не найдены через ldd, копируем из Qt директории
+            if [ ! -f "staging/bin/libQt6Core.so" ] && [ -f "$QT_DIR/lib/libQt6Core.so" ]; then
+              cp "$QT_DIR/lib"/libQt6*.so* staging/bin/ 2>/dev/null || true
+            fi
+          fi
+          
+          # Копируем QML модули из установленного Qt
+          if [ -d "$QT_DIR/qml" ]; then
+            cp -r "$QT_DIR/qml"/* staging/qml/ 2>/dev/null || true
+          fi
+          
+          # Копируем плагины Qt
+          if [ -d "$QT_DIR/plugins" ]; then
+            cp -r "$QT_DIR/plugins"/* staging/plugins/ 2>/dev/null || true
+          fi
+          
+          # Также проверяем системные пути на случай если что-то пропустили
+          QML_PATHS="/usr/lib/x86_64-linux-gnu/qt6/qml /usr/lib/qt6/qml"
+          for qml_path in $QML_PATHS; do
+            if [ -d "$qml_path" ] && [ ! -d "staging/qml/QtQuick" ]; then
+              cp -r "$qml_path"/* staging/qml/ 2>/dev/null || true
             fi
           done
           
           # Копируем зависимости Qt библиотек
           for lib in staging/bin/libQt6*.so*; do
             if [ -f "$lib" ]; then
-              ldd "$lib" | grep -v "libQt6" | awk '{print $3}' | while read dep; do
-                if [ -f "$dep" ] && [[ "$dep" == *"lib"* ]]; then
+              ldd "$lib" 2>/dev/null | grep -v "libQt6" | awk '{print $3}' | while read dep; do
+                if [ -f "$dep" ] && [[ "$dep" == *"lib"* ]] && [[ ! "$dep" == *"libc"* ]] && [[ ! "$dep" == *"libpthread"* ]]; then
                   cp "$dep" staging/bin/ 2>/dev/null || true
                 fi
               done
             fi
           done
-          
-          # Копируем QML модули
-          QML_PATHS="/usr/lib/x86_64-linux-gnu/qt6/qml /usr/lib/qt6/qml /usr/local/lib/qt6/qml"
-          for qml_path in $QML_PATHS; do
-            if [ -d "$qml_path" ]; then
-              cp -r "$qml_path"/* staging/qml/ 2>/dev/null || true
-            fi
-          done
-          
-          # Копируем плагины Qt
-          PLUGIN_PATHS="/usr/lib/x86_64-linux-gnu/qt6/plugins /usr/lib/qt6/plugins /usr/local/lib/qt6/plugins"
-          for plugin_path in $PLUGIN_PATHS; do
-            if [ -d "$plugin_path" ]; then
-              cp -r "$plugin_path"/* staging/plugins/ 2>/dev/null || true
-            fi
-          done
-          
-          # Копируем platform plugin если есть
-          if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms" ]; then
-            mkdir -p staging/plugins/platforms
-            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/* staging/plugins/platforms/ 2>/dev/null || true
-          fi
 
       - name: Create source archive
         run: |
@@ -231,7 +250,7 @@ jobs:
           Compress-Archive -Path staging\* -DestinationPath pimino-${{ github.ref_name }}-windows-x64.zip -Force
 
       - name: Install NSIS
-        uses: sebastian-koch/install-nsis@v1
+        uses: repolevedavaj/install-nsis@v1.0.1
         with:
           version: '3.09'
 
