@@ -20,7 +20,7 @@ jobs:
           version: '6.8.0'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'linux_gcc_64'
-          aqtversion: '>=4.0.0b1'
+          aqtversion: '>=3.3.0'
           cache: 'true'
 
       - name: Install system dependencies
@@ -166,7 +166,7 @@ jobs:
           version: '6.8.0'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'win64_msvc2022_64'
-          aqtversion: '>=4.0.0b1'
+          aqtversion: '>=3.3.0'
           cache: 'true'
 
       - name: Configure CMake
