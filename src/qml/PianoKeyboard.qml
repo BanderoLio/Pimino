@@ -228,6 +228,7 @@ FocusScope {
         if (key === Qt.Key_Backslash) return "\\"
         return ""
     }
+
     
     // Фокус для обработки событий клавиатуры
     focus: true
@@ -252,10 +253,7 @@ FocusScope {
                 event.accepted = true
                 return
             }
-            let keyText = event.text
-            if (!keyText || keyText.length === 0) {
-                keyText = keyToString(event.key)
-            }
+            let keyText = keyToString(event.key)
             if (keyText) {
                 handleKeyPress(keyText)
                 event.accepted = true
@@ -265,10 +263,7 @@ FocusScope {
     
     Keys.onReleased: (event) => {
         if (!event.isAutoRepeat) {
-            let keyText = event.text
-            if (!keyText || keyText.length === 0) {
-                keyText = keyToString(event.key)
-            }
+            let keyText = keyToString(event.key)
             if (keyText) {
                 handleKeyRelease(keyText)
                 event.accepted = true
