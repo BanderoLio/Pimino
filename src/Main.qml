@@ -17,6 +17,14 @@ ApplicationWindow {
     title: qsTr("Pimino - Виртуальное пианино")
 
     property int currentOctave: 4
+    property int minOctave: 1
+    property int maxOctave: 7
+
+    function focusKeyboard() {
+        Qt.callLater(function() {
+            pianoKeyboard.forceActiveFocus()
+        })
+    }
     
     SoundEngineQML {
         id: soundEngine
@@ -39,17 +47,17 @@ ApplicationWindow {
         ControlPanel {
             id: octavePanel
             Layout.fillWidth: true
-            Layout.preferredHeight: 120
+            Layout.preferredHeight: octavePanel.implicitHeight
             currentOctave: root.currentOctave
-            minOctave: 1
-            maxOctave: 7
+            minOctave: root.minOctave
+            maxOctave: root.maxOctave
+            soundEngine: soundEngine
+            onFocusKeyboardRequested: root.focusKeyboard()
             onOctaveChanged: (octave) => {
                 root.currentOctave = octave
                 pianoKeyboard.currentOctave = octave
                 // Возвращаем фокус на клавиатуру после смены октавы
-                Qt.callLater(function() {
-                    pianoKeyboard.forceActiveFocus()
-                })
+                root.focusKeyboard()
             }
         }
 
@@ -59,7 +67,13 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentOctave: root.currentOctave
+            minOctave: root.minOctave
+            maxOctave: root.maxOctave
             soundEngine: soundEngine
+            onOctaveChanged: (octave) => {
+                root.currentOctave = octave
+            }
+            Component.onCompleted: root.focusKeyboard()
             onNoteOn: (note, velocity) => {
                 console.log("Note ON:", note, "velocity:", velocity)
             }

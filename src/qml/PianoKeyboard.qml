@@ -2,19 +2,22 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 import QtQuick
-import QtQuick.Layouts
 import Pimino
 
 pragma ComponentBehavior: Bound
 
-Item {
+FocusScope {
     id: keyboard
     
     property int currentOctave: 4 // C4 по умолчанию (средняя октава)
-    property var onNoteOn: null
-    property var onNoteOff: null
+    property int minOctave: 1
+    property int maxOctave: 7
     property var controller: null
     property var soundEngine: null
+
+    signal noteOn(int note, int velocity)
+    signal noteOff(int note)
+    signal octaveChanged(int octave)
     
     // Обработка изменения октавы - останавливаем все текущие ноты
     onCurrentOctaveChanged: {
@@ -138,9 +141,7 @@ Item {
             if (soundEngine) {
                 soundEngine.noteOn(midiNote, 100)
             }
-            if (onNoteOn) {
-                onNoteOn(midiNote, 100)
-            }
+            keyboard.noteOn(midiNote, 100)
             updateKeyVisualState(keyInfo, true)
         }
     }
@@ -165,9 +166,7 @@ Item {
             if (soundEngine) {
                 soundEngine.noteOff(midiNote)
             }
-            if (onNoteOff) {
-                onNoteOff(midiNote)
-            }
+            keyboard.noteOff(midiNote)
             updateKeyVisualState(keyInfo, false)
         }
     }
@@ -233,9 +232,26 @@ Item {
     // Фокус для обработки событий клавиатуры
     focus: true
     Keys.forwardTo: []
+    Component.onCompleted: keyboard.forceActiveFocus()
     
     Keys.onPressed: (event) => {
         if (!event.isAutoRepeat) {
+            if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+                const nextOctave = Math.min(maxOctave, currentOctave + 1)
+                if (nextOctave !== currentOctave) {
+                    keyboard.octaveChanged(nextOctave)
+                }
+                event.accepted = true
+                return
+            }
+            if (event.key === Qt.Key_Minus) {
+                const prevOctave = Math.max(minOctave, currentOctave - 1)
+                if (prevOctave !== currentOctave) {
+                    keyboard.octaveChanged(prevOctave)
+                }
+                event.accepted = true
+                return
+            }
             let keyText = event.text
             if (!keyText || keyText.length === 0) {
                 keyText = keyToString(event.key)
@@ -294,9 +310,7 @@ Item {
                     if (keyboard.soundEngine) {
                         keyboard.soundEngine.noteOn(note, vel)
                     }
-                    if (keyboard.onNoteOn) {
-                        keyboard.onNoteOn(note, vel)
-                    }
+                    keyboard.noteOn(note, vel)
                 }
                 onNoteOff: (note) => {
                     // Удаляем MIDI ноту из списка активных
@@ -307,9 +321,7 @@ Item {
                     if (keyboard.soundEngine) {
                         keyboard.soundEngine.noteOff(note)
                     }
-                    if (keyboard.onNoteOff) {
-                        keyboard.onNoteOff(note)
-                    }
+                    keyboard.noteOff(note)
                 }
                 z: 0
             }
@@ -363,9 +375,7 @@ Item {
                     if (keyboard.soundEngine) {
                         keyboard.soundEngine.noteOn(note, vel)
                     }
-                    if (keyboard.onNoteOn) {
-                        keyboard.onNoteOn(note, vel)
-                    }
+                    keyboard.noteOn(note, vel)
                 }
                 onNoteOff: (note) => {
                     // Удаляем MIDI ноту из списка активных
@@ -376,9 +386,7 @@ Item {
                     if (keyboard.soundEngine) {
                         keyboard.soundEngine.noteOff(note)
                     }
-                    if (keyboard.onNoteOff) {
-                        keyboard.onNoteOff(note)
-                    }
+                    keyboard.noteOff(note)
                 }
                 
                 x: {

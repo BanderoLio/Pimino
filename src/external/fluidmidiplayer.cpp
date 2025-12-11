@@ -3,29 +3,43 @@
 #include <fluidsynth/midi.h>
 #include <fluidsynth/misc.h>
 #include <stdexcept>
+#include <string>
 
 FluidMidiPlayer::FluidMidiPlayer(const FluidSynth &synth)
-    : m_player(new_fluid_player(synth.synth())) {}
+    : m_synth(synth), m_player(new_fluid_player(synth.synth())) {}
 
 FluidMidiPlayer::~FluidMidiPlayer() {
   fluid_player_stop(m_player);
   delete_fluid_player(m_player);
 }
 
-void FluidMidiPlayer::addMidi(const char *path) {
-  if (fluid_player_add(m_player, path) == FLUID_FAILED) {
-    throw new std::runtime_error("Couldn't add midi to player");
-  }
+bool FluidMidiPlayer::loadFile(const std::string &path) {
+  recreatePlayer();
+  return fluid_player_add(m_player, path.c_str()) != FLUID_FAILED;
 }
 
-void FluidMidiPlayer::play() {
-  if (fluid_player_play(m_player) == FLUID_FAILED) {
-    throw new std::runtime_error("Couldn't play midi player");
-  }
+bool FluidMidiPlayer::play() {
+  return fluid_player_play(m_player) != FLUID_FAILED;
 }
 
-void FluidMidiPlayer::join() {
+void FluidMidiPlayer::stop() { fluid_player_stop(m_player); }
+
+bool FluidMidiPlayer::isPlaying() const {
   auto status = fluid_player_get_status(m_player);
-  if (status == FLUID_PLAYER_PLAYING || status == FLUID_PLAYER_STOPPING)
+  return status == FLUID_PLAYER_PLAYING || status == FLUID_PLAYER_STOPPING;
+}
+
+void FluidMidiPlayer::wait() {
+  if (isPlaying()) {
     fluid_player_join(m_player);
+  }
+}
+
+void FluidMidiPlayer::recreatePlayer() {
+  if (m_player) {
+    fluid_player_stop(m_player);
+    fluid_player_join(m_player);
+    delete_fluid_player(m_player);
+  }
+  m_player = new_fluid_player(m_synth.synth());
 }

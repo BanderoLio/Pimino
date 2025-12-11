@@ -47,6 +47,7 @@ SoundEngineQML::SoundEngineQML(QObject *parent)
         qWarning() << "No soundfont loaded. Sound will not work. "
                       "Please load a soundfont using loadSoundFont(path)";
       }
+      m_midiPlayer = std::make_unique<FluidMidiPlayer>(m_engine->synth());
       m_engine->setMidiAutoconnect(true);
     }
   } catch (const std::exception &e) {
@@ -72,12 +73,55 @@ bool SoundEngineQML::loadSoundFont(const QString &path) {
   }
   m_soundFontLoaded = m_engine->loadSoundFound(path.toStdString());
   if (m_soundFontLoaded) {
+    m_soundFontPath = path;
     qDebug() << "SoundFont loaded successfully:" << path;
   } else {
     qWarning() << "Failed to load SoundFont:" << path;
   }
   emit soundFontLoadedChanged();
+  emit soundFontPathChanged();
   return m_soundFontLoaded;
+}
+
+bool SoundEngineQML::loadMidiFile(const QString &path) {
+  if (!m_engine || !m_midiPlayer) {
+    qWarning() << "SoundEngine or midi player not initialized";
+    return false;
+  }
+  m_midiPlayer->stop();
+  m_midiPlayer->wait();
+  m_isMidiPlaying = false;
+  emit midiPlayingChanged();
+
+  m_midiLoaded = m_midiPlayer->loadFile(path.toStdString());
+  m_midiFilePath = m_midiLoaded ? path : QString();
+  emit midiLoadedChanged();
+  emit midiFilePathChanged();
+  return m_midiLoaded;
+}
+
+bool SoundEngineQML::playMidi() {
+  if (!m_midiPlayer) {
+    qWarning() << "MIDI player not initialized";
+    return false;
+  }
+  if (!m_midiLoaded) {
+    qWarning() << "No MIDI file loaded";
+    return false;
+  }
+  m_isMidiPlaying = m_midiPlayer->play();
+  emit midiPlayingChanged();
+  return m_isMidiPlaying;
+}
+
+void SoundEngineQML::stopMidi() {
+  if (!m_midiPlayer) {
+    return;
+  }
+  m_midiPlayer->stop();
+  m_midiPlayer->wait();
+  m_isMidiPlaying = false;
+  emit midiPlayingChanged();
 }
 
 void SoundEngineQML::noteOn(int key, int velocity, int channel) {

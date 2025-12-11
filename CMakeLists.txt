@@ -6,6 +6,7 @@ project(Pimino VERSION 1.0 LANGUAGES CXX)
 
 # Generate compile_commands.json for IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(QT_QML_GENERATE_QMLLS_INI ON)
 
 if (ANDROID OR IOS)
     message(FATAL_ERROR "Platform is not supported")
