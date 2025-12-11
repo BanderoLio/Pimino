@@ -20,7 +20,6 @@ jobs:
           version: '6.7.2'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'linux_gcc_64'
-          extra: '--aqtextensions exclude-qtwebengine exclude-qtpdf --timeout 600'
           cache: 'true'
 
       - name: Install system dependencies
@@ -166,7 +165,6 @@ jobs:
           version: '6.7.2'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
           arch: 'win64_msvc2022_64'
-          extra: '--aqtextensions exclude-qtwebengine exclude-qtpdf --timeout 600'
           cache: 'true'
 
       - name: Configure CMake
