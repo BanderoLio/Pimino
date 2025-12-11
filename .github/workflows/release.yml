@@ -64,57 +64,59 @@ jobs:
       - name: Install to staging directory
         run: |
           mkdir -p staging
-          cmake --install build --prefix staging
+          cmake --install build --prefix ${{ github.workspace }}/staging
 
       - name: Deploy Qt dependencies
         env:
           Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
-          mkdir -p staging/bin staging/qml staging/plugins
+          STAGING_DIR="${{ github.workspace }}/staging"
+          mkdir -p "$STAGING_DIR/bin" "$STAGING_DIR/qml" "$STAGING_DIR/plugins"
           
           QT_DIR="${{ env.Qt6_DIR }}"
           echo "Qt6 directory: $QT_DIR"
+          echo "Staging directory: $STAGING_DIR"
           
           # Используем linuxdeployqt или копируем вручную
           # Копируем необходимые Qt библиотеки из установленного Qt
           if [ -d "$QT_DIR/lib" ]; then
             # Копируем Qt библиотеки
-            ldd staging/bin/pimino | grep "libQt6" | awk '{print $3}' | while read lib; do
+            ldd "$STAGING_DIR/bin/pimino" | grep "libQt6" | awk '{print $3}' | while read lib; do
               if [ -f "$lib" ]; then
-                cp "$lib" staging/bin/
+                cp "$lib" "$STAGING_DIR/bin/"
               fi
             done
             
             # Если библиотеки не найдены через ldd, копируем из Qt директории
-            if [ ! -f "staging/bin/libQt6Core.so" ] && [ -f "$QT_DIR/lib/libQt6Core.so" ]; then
-              cp "$QT_DIR/lib"/libQt6*.so* staging/bin/ 2>/dev/null || true
+            if [ ! -f "$STAGING_DIR/bin/libQt6Core.so" ] && [ -f "$QT_DIR/lib/libQt6Core.so" ]; then
+              cp "$QT_DIR/lib"/libQt6*.so* "$STAGING_DIR/bin/" 2>/dev/null || true
             fi
           fi
           
           # Копируем QML модули из установленного Qt
           if [ -d "$QT_DIR/qml" ]; then
-            cp -r "$QT_DIR/qml"/* staging/qml/ 2>/dev/null || true
+            cp -r "$QT_DIR/qml"/* "$STAGING_DIR/qml/" 2>/dev/null || true
           fi
           
           # Копируем плагины Qt
           if [ -d "$QT_DIR/plugins" ]; then
-            cp -r "$QT_DIR/plugins"/* staging/plugins/ 2>/dev/null || true
+            cp -r "$QT_DIR/plugins"/* "$STAGING_DIR/plugins/" 2>/dev/null || true
           fi
           
           # Также проверяем системные пути на случай если что-то пропустили
           QML_PATHS="/usr/lib/x86_64-linux-gnu/qt6/qml /usr/lib/qt6/qml"
           for qml_path in $QML_PATHS; do
-            if [ -d "$qml_path" ] && [ ! -d "staging/qml/QtQuick" ]; then
-              cp -r "$qml_path"/* staging/qml/ 2>/dev/null || true
+            if [ -d "$qml_path" ] && [ ! -d "$STAGING_DIR/qml/QtQuick" ]; then
+              cp -r "$qml_path"/* "$STAGING_DIR/qml/" 2>/dev/null || true
             fi
           done
           
           # Копируем зависимости Qt библиотек
-          for lib in staging/bin/libQt6*.so*; do
+          for lib in "$STAGING_DIR/bin"/libQt6*.so*; do
             if [ -f "$lib" ]; then
               ldd "$lib" 2>/dev/null | grep -v "libQt6" | awk '{print $3}' | while read dep; do
                 if [ -f "$dep" ] && [[ "$dep" == *"lib"* ]] && [[ ! "$dep" == *"libc"* ]] && [[ ! "$dep" == *"libpthread"* ]]; then
-                  cp "$dep" staging/bin/ 2>/dev/null || true
+                  cp "$dep" "$STAGING_DIR/bin/" 2>/dev/null || true
                 fi
               done
             fi
@@ -126,9 +128,9 @@ jobs:
 
       - name: Create Linux archive
         run: |
-          cd staging
-          tar -czf ../pimino-${{ github.ref_name }}-linux-x64.tar.gz *
-          cd ..
+          cd ${{ github.workspace }}/staging
+          tar -czf ${{ github.workspace }}/pimino-${{ github.ref_name }}-linux-x64.tar.gz *
+          cd ${{ github.workspace }}
           zip -r pimino-${{ github.ref_name }}-linux-x64.zip staging/*
 
       - name: Upload Linux artifacts
@@ -183,7 +185,7 @@ jobs:
       - name: Install to staging directory
         run: |
           mkdir staging
-          cmake --install build --prefix staging
+          cmake --install build --prefix ${{ github.workspace }}\staging
 
       - name: Deploy Qt dependencies
         shell: pwsh
@@ -258,11 +260,13 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}"
-          $stagingDir = "${{ github.workspace }}\staging"
-          $installerScript = "${{ github.workspace }}\installer.nsi"
+          $workspace = "${{ github.workspace }}"
+          $stagingDir = "$workspace\staging"
+          $installerScript = "$workspace\installer.nsi"
           
           Write-Host "Creating installer with version: $version"
           Write-Host "Staging directory: $stagingDir"
+          Write-Host "Workspace: $workspace"
           
           # Используем makensis из PATH (установлен через action)
           makensis.exe /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
@@ -273,12 +277,12 @@ jobs:
           }
           
           # Проверяем что файл создан
-          $installerFile = "pimino-$version-setup.exe"
+          $installerFile = "$workspace\pimino-$version-setup.exe"
           if (Test-Path $installerFile) {
             Write-Host "Installer created: $installerFile"
             Get-Item $installerFile | Select-Object Name, Length
           } else {
-            Write-Error "Installer file not found"
+            Write-Error "Installer file not found: $installerFile"
             exit 1
           }
 
