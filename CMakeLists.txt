@@ -54,21 +54,8 @@ qt_add_qml_module(pimino
         "src/qml/PianoKeyboard.qml"
         "src/qml/ControlPanel.qml"
     RESOURCES
-        "src/icons/folder_closed.svg"
-        "src/icons/folder_open.svg"
-        "src/icons/generic_file.svg"
-        "src/icons/globe.svg"
-        "src/icons/info_sign.svg"
-        "src/icons/light_bulb.svg"
-        "src/icons/read.svg"
-        "src/icons/resize.svg"
-        "src/icons/qt_logo.svg"
         "src/icons/app_icon.svg"
     SOURCES
-        src/filesystemmodel.cpp
-        src/filesystemmodel.h
-        src/linenumbermodel.cpp
-        src/linenumbermodel.h
         src/core/app.h
         src/core/soundengineqml.h
         src/core/soundengineqml.cpp

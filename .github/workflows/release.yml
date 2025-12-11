@@ -1,0 +1,304 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Запускается при создании тега вида v1.0.0
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            qt6-quickcontrols2-dev \
+            libfluidsynth-dev \
+            git
+
+      - name: Setup vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+
+      - name: Install vcpkg dependencies
+        run: |
+          cd vcpkg
+          ./bootstrap-vcpkg.sh
+          ./vcpkg install fluidsynth:x64-linux
+
+      - name: Configure CMake
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -G Ninja
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install to staging directory
+        run: |
+          mkdir -p staging
+          cmake --install build --prefix staging
+
+      - name: Deploy Qt dependencies
+        run: |
+          mkdir -p staging/bin staging/qml staging/plugins
+          
+          # Используем windeployqt-подобный подход для Linux
+          # Копируем необходимые Qt библиотеки
+          ldd staging/bin/pimino | grep "libQt6" | awk '{print $3}' | while read lib; do
+            if [ -f "$lib" ]; then
+              cp "$lib" staging/bin/
+            fi
+          done
+          
+          # Копируем зависимости Qt библиотек
+          for lib in staging/bin/libQt6*.so*; do
+            if [ -f "$lib" ]; then
+              ldd "$lib" | grep -v "libQt6" | awk '{print $3}' | while read dep; do
+                if [ -f "$dep" ] && [[ "$dep" == *"lib"* ]]; then
+                  cp "$dep" staging/bin/ 2>/dev/null || true
+                fi
+              done
+            fi
+          done
+          
+          # Копируем QML модули
+          QML_PATHS="/usr/lib/x86_64-linux-gnu/qt6/qml /usr/lib/qt6/qml /usr/local/lib/qt6/qml"
+          for qml_path in $QML_PATHS; do
+            if [ -d "$qml_path" ]; then
+              cp -r "$qml_path"/* staging/qml/ 2>/dev/null || true
+            fi
+          done
+          
+          # Копируем плагины Qt
+          PLUGIN_PATHS="/usr/lib/x86_64-linux-gnu/qt6/plugins /usr/lib/qt6/plugins /usr/local/lib/qt6/plugins"
+          for plugin_path in $PLUGIN_PATHS; do
+            if [ -d "$plugin_path" ]; then
+              cp -r "$plugin_path"/* staging/plugins/ 2>/dev/null || true
+            fi
+          done
+          
+          # Копируем platform plugin если есть
+          if [ -d "/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms" ]; then
+            mkdir -p staging/plugins/platforms
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/* staging/plugins/platforms/ 2>/dev/null || true
+          fi
+
+      - name: Create source archive
+        run: |
+          git archive --format=tar.gz --prefix=pimino-${{ github.ref_name }}-src/ -o pimino-${{ github.ref_name }}-src.tar.gz HEAD
+
+      - name: Create Linux archive
+        run: |
+          cd staging
+          tar -czf ../pimino-${{ github.ref_name }}-linux-x64.tar.gz *
+          cd ..
+          zip -r pimino-${{ github.ref_name }}-linux-x64.zip staging/*
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: |
+            pimino-${{ github.ref_name }}-linux-x64.tar.gz
+            pimino-${{ github.ref_name }}-linux-x64.zip
+            pimino-${{ github.ref_name }}-src.tar.gz
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+
+      - name: Install vcpkg dependencies
+        run: |
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install fluidsynth:x64-windows
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          arch: 'win64_msvc2022_64'
+          cache: 'true'
+
+      - name: Configure CMake
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+          Qt6_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          cmake -B build -S . `
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake `
+            -DCMAKE_BUILD_TYPE=Release `
+            -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install to staging directory
+        run: |
+          mkdir staging
+          cmake --install build --prefix staging
+
+      - name: Deploy Qt dependencies
+        shell: pwsh
+        env:
+          Qt6_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          $qtDir = "$env:Qt6_DIR"
+          $qtBin = "$qtDir\bin"
+          $stagingBin = "staging\bin"
+          $stagingQml = "staging\qml"
+          $stagingPlugins = "staging\plugins"
+          
+          Write-Host "Qt6_DIR: $qtDir"
+          Write-Host "Qt Bin: $qtBin"
+          
+          # Создаем директории
+          New-Item -ItemType Directory -Force -Path $stagingBin | Out-Null
+          New-Item -ItemType Directory -Force -Path $stagingQml | Out-Null
+          New-Item -ItemType Directory -Force -Path $stagingPlugins | Out-Null
+          
+          # Копируем все необходимые Qt DLL
+          $qtDlls = @(
+            "Qt6Core.dll", "Qt6Gui.dll", "Qt6Qml.dll", "Qt6Quick.dll",
+            "Qt6QuickControls2.dll", "Qt6Svg.dll", "Qt6QmlModels.dll",
+            "Qt6QmlWorkerScript.dll", "Qt6Network.dll", "Qt6OpenGL.dll"
+          )
+          
+          foreach ($dll in $qtDlls) {
+            $src = "$qtBin\$dll"
+            if (Test-Path $src) {
+              Copy-Item $src -Destination $stagingBin -Force
+              Write-Host "Copied: $dll"
+            }
+          }
+          
+          # Копируем QML модули
+          $qmlSrc = "$qtDir\qml"
+          if (Test-Path $qmlSrc) {
+            Copy-Item -Recurse "$qmlSrc\*" -Destination $stagingQml -Force
+            Write-Host "Copied QML modules"
+          }
+          
+          # Копируем плагины
+          $pluginsSrc = "$qtDir\plugins"
+          if (Test-Path $pluginsSrc) {
+            Copy-Item -Recurse "$pluginsSrc\*" -Destination $stagingPlugins -Force
+            Write-Host "Copied plugins"
+          }
+          
+          # Используем windeployqt если доступен
+          $windeployqt = "$qtDir\bin\windeployqt.exe"
+          if (Test-Path $windeployqt) {
+            Write-Host "Running windeployqt..."
+            & $windeployqt --qmldir "$stagingQml" --no-translations "$stagingBin\pimino.exe"
+          }
+
+      - name: Create source archive
+        run: |
+          git archive --format=zip --prefix=pimino-${{ github.ref_name }}-src/ -o pimino-${{ github.ref_name }}-src.zip HEAD
+
+      - name: Create Windows archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path staging\* -DestinationPath pimino-${{ github.ref_name }}-windows-x64.zip -Force
+
+      - name: Install NSIS
+        uses: sebastian-koch/install-nsis@v1
+        with:
+          version: '3.09'
+
+      - name: Create NSIS installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $stagingDir = "${{ github.workspace }}\staging"
+          $installerScript = "${{ github.workspace }}\installer.nsi"
+          
+          Write-Host "Creating installer with version: $version"
+          Write-Host "Staging directory: $stagingDir"
+          
+          # Используем makensis из PATH (установлен через action)
+          makensis.exe /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "NSIS compilation failed"
+            exit 1
+          }
+          
+          # Проверяем что файл создан
+          $installerFile = "pimino-$version-setup.exe"
+          if (Test-Path $installerFile) {
+            Write-Host "Installer created: $installerFile"
+            Get-Item $installerFile | Select-Object Name, Length
+          } else {
+            Write-Error "Installer file not found"
+            exit 1
+          }
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: |
+            pimino-${{ github.ref_name }}-windows-x64.zip
+            pimino-${{ github.ref_name }}-src.zip
+            pimino-${{ github.ref_name }}-setup.exe
+
+  release:
+    name: Create Release
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: artifacts/linux
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: artifacts/windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/linux/*
+            artifacts/windows/*
+          draft: false
+          prerelease: false
+          generate_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

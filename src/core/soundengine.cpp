@@ -1,4 +1,4 @@
-#include "soundengine.h"
+#include "core/soundengine.h"
 #include "external/fluidsynth.h"
 #include <fluidsynth/settings.h>
 #include <qdebug.h>
