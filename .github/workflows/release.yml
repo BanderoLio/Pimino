@@ -252,9 +252,95 @@ jobs:
           Compress-Archive -Path staging\* -DestinationPath pimino-${{ github.ref_name }}-windows-x64.zip -Force
 
       - name: Install NSIS
-        uses: repolevedavaj/install-nsis@v1.0.1
-        with:
-          version: '3.09'
+        shell: pwsh
+        run: |
+          # Устанавливаем NSIS через Chocolatey или напрямую
+          Write-Host "Installing NSIS..."
+          
+          # Проверяем наличие Chocolatey
+          if (Get-Command choco -ErrorAction SilentlyContinue) {
+            Write-Host "Using Chocolatey to install NSIS"
+            choco install nsis -y
+          } else {
+            Write-Host "Chocolatey not found, installing NSIS manually"
+            # Используем прямой URL к установщику NSIS 3.09
+            $nsisUrl = "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/PortableGit-2.43.0-64-bit.7z.exe"
+            # Правильный URL для NSIS 3.09
+            $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09-setup.exe"
+            $nsisInstaller = "$env:TEMP\nsis-3.09-setup.exe"
+            
+            # Скачиваем установщик с повторными попытками
+            Write-Host "Downloading NSIS installer from: $nsisUrl"
+            $maxRetries = 3
+            $retryCount = 0
+            $downloadSuccess = $false
+            
+            while ($retryCount -lt $maxRetries -and -not $downloadSuccess) {
+              try {
+                Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisInstaller -UseBasicParsing -TimeoutSec 300
+                if (Test-Path $nsisInstaller -and (Get-Item $nsisInstaller).Length -gt 0) {
+                  $downloadSuccess = $true
+                  Write-Host "NSIS installer downloaded successfully"
+                } else {
+                  throw "Downloaded file is empty or invalid"
+                }
+              } catch {
+                $retryCount++
+                Write-Host "Download attempt $retryCount failed: $_"
+                if ($retryCount -lt $maxRetries) {
+                  Start-Sleep -Seconds 5
+                }
+              }
+            }
+            
+            if (-not $downloadSuccess) {
+              Write-Error "Failed to download NSIS installer after $maxRetries attempts"
+              exit 1
+            }
+            
+            # Устанавливаем NSIS в тихом режиме
+            Write-Host "Installing NSIS..."
+            $installProcess = Start-Process -FilePath $nsisInstaller -ArgumentList "/S" -Wait -PassThru -NoNewWindow
+            
+            if ($installProcess.ExitCode -ne 0) {
+              Write-Warning "NSIS installer exited with code: $($installProcess.ExitCode)"
+            }
+            
+            # Проверяем установку и добавляем NSIS в PATH
+            $nsisPath = "C:\Program Files (x86)\NSIS"
+            if (Test-Path "$nsisPath\makensis.exe") {
+              $env:PATH = "$nsisPath;$env:PATH"
+              Write-Host "NSIS installed successfully to: $nsisPath"
+            } else {
+              # Пробуем альтернативный путь
+              $altPath = "C:\Program Files\NSIS"
+              if (Test-Path "$altPath\makensis.exe") {
+                $nsisPath = $altPath
+                $env:PATH = "$nsisPath;$env:PATH"
+                Write-Host "NSIS found at alternative path: $nsisPath"
+              } else {
+                Write-Error "NSIS installation failed - makensis.exe not found"
+                exit 1
+              }
+            }
+          }
+          
+          # Проверяем установку
+          $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+          if ($makensis) {
+            Write-Host "NSIS installed successfully"
+            & makensis.exe /VERSION
+          } else {
+            Write-Host "Adding NSIS to PATH and checking again..."
+            $env:PATH = "C:\Program Files (x86)\NSIS;$env:PATH"
+            $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+            if ($makensis) {
+              Write-Host "NSIS found after PATH update"
+            } else {
+              Write-Error "NSIS not found in PATH"
+              exit 1
+            }
+          }
 
       - name: Create NSIS installer
         shell: pwsh
@@ -268,8 +354,45 @@ jobs:
           Write-Host "Staging directory: $stagingDir"
           Write-Host "Workspace: $workspace"
           
-          # Используем makensis из PATH (установлен через action)
-          makensis.exe /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+          # Убеждаемся что NSIS в PATH
+          $nsisPath = "C:\Program Files (x86)\NSIS"
+          if (Test-Path $nsisPath) {
+            $env:PATH = "$nsisPath;$env:PATH"
+            Write-Host "Added NSIS to PATH: $nsisPath"
+          }
+          
+          # Используем makensis из PATH или напрямую
+          $makensisPath = "$nsisPath\makensis.exe"
+          if (Test-Path $makensisPath) {
+            Write-Host "Using makensis from: $makensisPath"
+            & $makensisPath /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+          } else {
+            # Пробуем найти в PATH
+            $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+            if ($makensis) {
+              Write-Host "Using makensis from PATH: $($makensis.Path)"
+              & makensis.exe /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+            } else {
+              Write-Error "makensis.exe not found. NSIS may not be installed correctly."
+              Write-Host "Checking common NSIS locations..."
+              $commonPaths = @(
+                "C:\Program Files (x86)\NSIS\makensis.exe",
+                "C:\Program Files\NSIS\makensis.exe",
+                "$env:ProgramFiles\NSIS\makensis.exe",
+                "$env:ProgramFiles(x86)\NSIS\makensis.exe"
+              )
+              foreach ($path in $commonPaths) {
+                if (Test-Path $path) {
+                  Write-Host "Found makensis at: $path"
+                  & $path /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+                  break
+                }
+              }
+              if ($LASTEXITCODE -ne 0) {
+                exit 1
+              }
+            }
+          }
           
           if ($LASTEXITCODE -ne 0) {
             Write-Error "NSIS compilation failed"
