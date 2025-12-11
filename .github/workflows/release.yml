@@ -19,6 +19,7 @@ jobs:
         with:
           version: '6.8.0'
           modules: 'qtbase qtdeclarative qtquickcontrols2 qtsvg'
+          aqtversion: '==3.1.19' # Add this line to specify a working version
           arch: 'linux_x64'
           cache: 'true'
 
