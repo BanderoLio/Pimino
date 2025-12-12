@@ -15,7 +15,8 @@ class SoundEngineQML : public QObject {
 
   Q_PROPERTY(
       bool soundFontLoaded READ soundFontLoaded NOTIFY soundFontLoadedChanged)
-  Q_PROPERTY(QString soundFontPath READ soundFontPath NOTIFY soundFontPathChanged)
+  Q_PROPERTY(
+      QString soundFontPath READ soundFontPath NOTIFY soundFontPathChanged)
   Q_PROPERTY(bool midiLoaded READ midiLoaded NOTIFY midiLoadedChanged)
   Q_PROPERTY(QString midiFilePath READ midiFilePath NOTIFY midiFilePathChanged)
   Q_PROPERTY(bool isMidiPlaying READ isMidiPlaying NOTIFY midiPlayingChanged)
@@ -36,6 +37,7 @@ public:
   Q_INVOKABLE void stopMidi();
   Q_INVOKABLE void noteOn(int key, int velocity = 100, int channel = 0);
   Q_INVOKABLE void noteOff(int key, int channel = 0);
+  Q_INVOKABLE void initialize(); // Инициализация SoundEngine
 
 signals:
   void soundFontLoadedChanged();
@@ -49,7 +51,7 @@ private:
   bool m_soundFontLoaded;
   QString m_soundFontPath;
 
-  std::unique_ptr<FluidMidiPlayer> m_midiPlayer;
+  std::unique_ptr<FluidMidiPlayer> m_midiPlayer{nullptr};
   bool m_midiLoaded{false};
   QString m_midiFilePath;
   bool m_isMidiPlaying{false};

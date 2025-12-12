@@ -1,5 +1,5 @@
-#include "fluidmidiplayer.h"
-#include "external/fluidsynth.h"
+#include <external/fluidmidiplayer.h>
+#include <external/fluidsynth.h>
 #include <fluidsynth/midi.h>
 #include <fluidsynth/misc.h>
 #include <stdexcept>

@@ -1,4 +1,4 @@
-#include "fluidsettings.h"
+#include <external/fluidsettings.h>
 #include <fluidsynth/settings.h>
 
 FluidSettings::FluidSettings() : m_settings(new_fluid_settings()) {

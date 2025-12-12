@@ -39,11 +39,17 @@ ApplicationWindow {
     SoundEngineQML {
         id: soundEngine
         Component.onCompleted: {
-            console.log("SoundEngine initialized")
-            if (soundFontLoaded) {
-                console.log("SoundFont loaded successfully")
-            } else {
-                console.warn("SoundFont not loaded. Sound will not work.")
+            console.log("SoundEngine component created, initializing...")
+            try {
+                soundEngine.initialize()
+                console.log("SoundEngine initialized")
+                if (soundFontLoaded) {
+                    console.log("SoundFont loaded successfully")
+                } else {
+                    console.warn("SoundFont not loaded. Sound will not work.")
+                }
+            } catch (error) {
+                console.error("Error initializing SoundEngine:", error)
             }
         }
     }
@@ -55,6 +61,11 @@ ApplicationWindow {
                 text: qsTr("Загрузить SoundFont")
                 onTriggered: soundFontDialog.open()
             }
+            MenuSeparator {}
+            MenuItem {
+                text: qsTr("Выход")
+                onTriggered: Qt.quit()
+            }
         }
     }
 
@@ -63,16 +74,45 @@ ApplicationWindow {
         anchors.margins: 16
         spacing: 12
 
-        TabBar {
-            id: tabBar
+        RowLayout {
             Layout.fillWidth: true
-            currentIndex: root.currentTab
-            onCurrentIndexChanged: root.currentTab = currentIndex
-            Material.theme: Material.Dark
-            Material.accent: "#A7B464"
+            spacing: 12
 
-            TabButton { text: qsTr("Клавиатура") }
-            TabButton { text: qsTr("MIDI плеер") }
+            TabBar {
+                id: tabBar
+                Layout.fillWidth: true
+                currentIndex: root.currentTab
+                onCurrentIndexChanged: root.currentTab = currentIndex
+                Material.theme: Material.Dark
+                Material.accent: "#A7B464"
+
+                TabButton { text: qsTr("Клавиатура") }
+                TabButton { text: qsTr("MIDI плеер") }
+            }
+
+            Button {
+                id: closeButton
+                text: qsTr("✕")
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                onClicked: Qt.quit()
+                background: Rectangle {
+                    color: closeButton.pressed ? "#E06C75" : (closeButton.hovered ? "#C678DD" : "#3a3a3a")
+                    radius: 6
+                    border.color: "#555"
+                    border.width: 1
+                }
+                contentItem: Text {
+                    text: closeButton.text
+                    color: "#D4BE98"
+                    font.pixelSize: 18
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                ToolTip.visible: closeButton.hovered
+                ToolTip.text: qsTr("Закрыть приложение")
+            }
         }
 
         StackLayout {

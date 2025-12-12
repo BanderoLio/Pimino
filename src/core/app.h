@@ -14,6 +14,8 @@ public:
 private:
   QGuiApplication m_app;
   QQmlApplicationEngine m_engine;
+
+  void setupQmlEngine();
 };
 
 #endif // APP_H
