@@ -231,11 +231,10 @@ ApplicationWindow {
         id: soundFontDialog
         title: "Выберите SoundFont (.sf2)"
         nameFilters: ["SoundFont (*.sf2)"]
-        options: FileDialog.DontUseNativeDialog
         onAccepted: {
             const path = selectedFile.toString().replace("file://", "")
             if (soundEngine.loadSoundFont(path)) {
-                selectedSoundFont = path
+                root.selectedSoundFont = path
             }
             root.focusKeyboard()
         }

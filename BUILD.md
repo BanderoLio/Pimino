@@ -8,7 +8,7 @@
 
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/yourusername/Pimino.git
+git clone https://github.com/BanderoLio/Pimino.git
 cd Pimino
 
 # Используйте Makefile для простой сборки
@@ -22,14 +22,14 @@ make install          # Установить в директорию install/
 
 ```cmd
 REM Клонируйте репозиторий
-git clone https://github.com/yourusername/Pimino.git
+git clone https://github.com/BanderoLio/Pimino.git
 cd Pimino
 
 REM Настройте vcpkg
 git clone https://github.com/microsoft/vcpkg.git
 cd vcpkg
 .\bootstrap-vcpkg.bat
-.\vcpkg install fluidsynth:x64-windows
+.\vcpkg install fluidsynth
 
 REM Вернитесь в директорию проекта
 cd ..
@@ -83,7 +83,7 @@ cmake --build build --config Release
 ### Шаг 1: Получение исходного кода
 
 ```bash
-git clone https://github.com/yourusername/Pimino.git
+git clone https://github.com/BanderoLio/Pimino.git
 cd Pimino
 ```
 

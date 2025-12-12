@@ -125,6 +125,36 @@ jobs:
               done
             fi
           done
+          
+          # Копируем FluidSynth библиотеки из vcpkg
+          echo "Copying FluidSynth dependencies..."
+          VCPKG_ROOT="${{ github.workspace }}/vcpkg"
+          VCPKG_INSTALLED="$VCPKG_ROOT/installed/x64-linux/lib"
+          
+          if [ -d "$VCPKG_INSTALLED" ]; then
+            # Копируем libfluidsynth
+            find "$VCPKG_INSTALLED" -name "libfluidsynth.so*" -exec cp {} "$STAGING_DIR/bin/" \; 2>/dev/null || true
+            echo "Copied FluidSynth libraries"
+            
+            # Копируем зависимости FluidSynth
+            ldd "$STAGING_DIR/bin/pimino" 2>/dev/null | grep -E "(libglib|libgthread|libgobject|libintl|libffi)" | awk '{print $3}' | while read dep; do
+              if [ -f "$dep" ]; then
+                cp "$dep" "$STAGING_DIR/bin/" 2>/dev/null || true
+              fi
+            done
+          fi
+          
+          # Копируем soundfont файл по умолчанию
+          echo "Copying default soundfont..."
+          mkdir -p "$STAGING_DIR/var"
+          
+          SOUNDFONT_SOURCE="${{ github.workspace }}/var/Yamaha CFX Grand.sf2"
+          if [ -f "$SOUNDFONT_SOURCE" ]; then
+            cp "$SOUNDFONT_SOURCE" "$STAGING_DIR/var/" 2>/dev/null || true
+            echo "Copied default soundfont to: $STAGING_DIR/var/"
+          else
+            echo "Warning: Default soundfont not found at: $SOUNDFONT_SOURCE"
+          fi
 
       - name: Create source archive
         run: |
@@ -244,6 +274,88 @@ jobs:
           if (Test-Path $windeployqt) {
             Write-Host "Running windeployqt..."
             & $windeployqt --qmldir "$stagingQml" --no-translations "$stagingBin\pimino.exe"
+          }
+          
+          # Копируем FluidSynth DLL из vcpkg
+          Write-Host "Copying FluidSynth dependencies..."
+          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          $vcpkgInstalled = "$vcpkgRoot\installed\x64-windows\bin"
+          
+          if (Test-Path $vcpkgInstalled) {
+            # Ищем все FluidSynth DLL (включая libfluidsynth-3.dll)
+            $fluidsynthDlls = Get-ChildItem -Path $vcpkgInstalled -Filter "*fluidsynth*.dll" -ErrorAction SilentlyContinue
+            if ($fluidsynthDlls) {
+              foreach ($dll in $fluidsynthDlls) {
+                Copy-Item $dll.FullName -Destination $stagingBin -Force
+                Write-Host "Copied FluidSynth DLL: $($dll.Name)"
+              }
+            } else {
+              Write-Warning "No FluidSynth DLLs found in $vcpkgInstalled"
+            }
+            
+            # Копируем зависимости FluidSynth (MinGW)
+            $fluidsynthDeps = @("libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
+            foreach ($dep in $fluidsynthDeps) {
+              $depPath = Join-Path $vcpkgInstalled $dep
+              if (Test-Path $depPath) {
+                Copy-Item $depPath -Destination $stagingBin -Force
+                Write-Host "Copied dependency: $dep"
+              }
+            }
+            
+            # Также проверяем MSVC зависимости
+            $msvcDeps = @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+            foreach ($dep in $msvcDeps) {
+              $depPath = Join-Path $vcpkgInstalled $dep
+              if (Test-Path $depPath) {
+                Copy-Item $depPath -Destination $stagingBin -Force
+                Write-Host "Copied MSVC dependency: $dep"
+              }
+            }
+          } else {
+            Write-Warning "vcpkg installed directory not found at: $vcpkgInstalled"
+            Write-Host "Trying alternative locations..."
+            # Пробуем найти в других местах
+            $altPaths = @(
+              "$vcpkgRoot\installed\x64-windows\debug\bin",
+              "$env:VCPKG_ROOT\installed\x64-windows\bin"
+            )
+            foreach ($altPath in $altPaths) {
+              if (Test-Path $altPath) {
+                $fluidsynthDlls = Get-ChildItem -Path $altPath -Filter "*fluidsynth*.dll" -ErrorAction SilentlyContinue
+                if ($fluidsynthDlls) {
+                  foreach ($dll in $fluidsynthDlls) {
+                    Copy-Item $dll.FullName -Destination $stagingBin -Force
+                    Write-Host "Copied FluidSynth DLL from alternative location: $($dll.Name)"
+                  }
+                  break
+                }
+              }
+            }
+          }
+          
+          # Проверяем что DLL скопированы
+          $fluidsynthCheck = Get-ChildItem -Path $stagingBin -Filter "*fluidsynth*.dll" -ErrorAction SilentlyContinue
+          if ($fluidsynthCheck) {
+            Write-Host "FluidSynth DLLs verified in staging:"
+            foreach ($dll in $fluidsynthCheck) {
+              Write-Host "  - $($dll.Name)"
+            }
+          } else {
+            Write-Error "FluidSynth DLLs not found in staging/bin after copy operation!"
+          }
+          
+          # Копируем soundfont файл по умолчанию
+          Write-Host "Copying default soundfont..."
+          $stagingVar = "staging\var"
+          New-Item -ItemType Directory -Force -Path $stagingVar | Out-Null
+          
+          $soundfontSource = "${{ github.workspace }}\var\Yamaha CFX Grand.sf2"
+          if (Test-Path $soundfontSource) {
+            Copy-Item $soundfontSource -Destination $stagingVar -Force
+            Write-Host "Copied default soundfont to: $stagingVar"
+          } else {
+            Write-Warning "Default soundfont not found at: $soundfontSource"
           }
 
       - name: Create source archive
