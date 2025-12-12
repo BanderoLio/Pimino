@@ -6,6 +6,7 @@
 #include <QGuiApplication>
 #include <QLoggingCategory>
 #include <QThread>
+#include <qguiapplication.h>
 
 #include "core/app.h"
 
@@ -22,15 +23,16 @@ int main(int argc, char *argv[]) {
   qDebug() << "main() - Qt version:" << QT_VERSION_STR;
 
   try {
-    App application(argc, argv);
+    QGuiApplication app(argc, argv);
+    App application(app);
     qDebug() << "main() - App created, calling loadUI()";
 
     QThread::msleep(50);
 
-    application.loadUI();
+    application.loadUI(app);
     qDebug() << "main() - loadUI() completed, calling exec()";
 
-    return application.exec();
+    return app.exec();
   } catch (const std::exception &e) {
     qCritical() << "Exception in main:" << e.what();
     return 1;

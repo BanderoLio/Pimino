@@ -9,12 +9,14 @@
 #include <QQmlEngine>
 #include <QThread>
 #include <QtQml/qqmlregistration.h>
+#include <qguiapplication.h>
+#include <qobject.h>
 
-App::App(int argc, char *argv[]) : m_app(argc, argv), m_engine() {
+App::App(QGuiApplication &) : m_engine() {
   qDebug() << "App::App() - Application initialized";
 }
 
-void App::loadUI() {
+void App::loadUI(QGuiApplication &app) {
   qDebug() << "App::loadUI() - Starting QML engine initialization";
 
   const QMetaObject *metaObj = &SoundEngineQML::staticMetaObject;
@@ -38,7 +40,7 @@ void App::loadUI() {
                    });
 
   QObject::connect(
-      &m_engine, &QQmlApplicationEngine::objectCreated, &m_app,
+      &m_engine, &QQmlApplicationEngine::objectCreated, &app,
       [](QObject *obj, const QUrl &url) {
         if (!obj) {
           qCritical() << "Failed to create QML object from:" << url;
@@ -65,7 +67,7 @@ void App::loadUI() {
   QStringList importPaths = m_engine.importPathList();
   qDebug() << "QML import paths:" << importPaths;
 
-  if (QThread::currentThread() != m_app.thread()) {
+  if (QThread::currentThread() != app.thread()) {
     qCritical() << "loadUI() called from wrong thread!";
     throw std::runtime_error("loadUI must be called from main thread");
   }
@@ -129,14 +131,14 @@ void App::loadUI() {
   // qt_add_qml_module
   QString iconPath = ":/qt/qml/Pimino/src/icons/app_icon.svg";
   if (QFile::exists(iconPath)) {
-    m_app.setWindowIcon(QIcon(iconPath));
+    app.setWindowIcon(QIcon(iconPath));
     qDebug() << "Window icon loaded from:" << iconPath;
   } else {
     qWarning() << "Window icon not found at:" << iconPath;
     // Попробуем альтернативный путь без /src/
     iconPath = ":/qt/qml/Pimino/icons/app_icon.svg";
     if (QFile::exists(iconPath)) {
-      m_app.setWindowIcon(QIcon(iconPath));
+      app.setWindowIcon(QIcon(iconPath));
       qDebug() << "Window icon loaded from alternative path:" << iconPath;
     }
   }
@@ -144,5 +146,3 @@ void App::loadUI() {
   qDebug() << "App::loadUI() - QML loaded successfully, root objects:"
            << m_engine.rootObjects().size();
 }
-
-int App::exec() { return m_app.exec(); }
