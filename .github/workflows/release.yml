@@ -71,62 +71,17 @@ jobs:
           cmake --install build --prefix ${{ github.workspace }}/staging
 
       - name: Deploy Qt dependencies
-        env:
-          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
+          wget github.com
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+          
           STAGING_DIR="${{ github.workspace }}/staging"
-          mkdir -p "$STAGING_DIR/bin" "$STAGING_DIR/qml" "$STAGING_DIR/plugins"
           
-          QT_DIR="${{ env.Qt6_DIR }}"
-          echo "Qt6 directory: $QT_DIR"
-          echo "Staging directory: $STAGING_DIR"
+          cd "$STAGING_DIR/bin"
           
-          # Используем linuxdeployqt или копируем вручную
-          # Копируем необходимые Qt библиотеки из установленного Qt
-          if [ -d "$QT_DIR/lib" ]; then
-            # Копируем Qt библиотеки
-            ldd "$STAGING_DIR/bin/pimino" | grep "libQt6" | awk '{print $3}' | while read lib; do
-              if [ -f "$lib" ]; then
-                cp "$lib" "$STAGING_DIR/bin/"
-              fi
-            done
-            
-            # Если библиотеки не найдены через ldd, копируем из Qt директории
-            if [ ! -f "$STAGING_DIR/bin/libQt6Core.so" ] && [ -f "$QT_DIR/lib/libQt6Core.so" ]; then
-              cp "$QT_DIR/lib"/libQt6*.so* "$STAGING_DIR/bin/" 2>/dev/null || true
-            fi
-          fi
+          ../../linuxdeployqt-continuous-x86_64.AppImage pimino -appimage
           
-          # Копируем QML модули из установленного Qt
-          if [ -d "$QT_DIR/qml" ]; then
-            cp -r "$QT_DIR/qml"/* "$STAGING_DIR/qml/" 2>/dev/null || true
-          fi
           
-          # Копируем плагины Qt
-          if [ -d "$QT_DIR/plugins" ]; then
-            cp -r "$QT_DIR/plugins"/* "$STAGING_DIR/plugins/" 2>/dev/null || true
-          fi
-          
-          # Также проверяем системные пути на случай если что-то пропустили
-          QML_PATHS="/usr/lib/x86_64-linux-gnu/qt6/qml /usr/lib/qt6/qml"
-          for qml_path in $QML_PATHS; do
-            if [ -d "$qml_path" ] && [ ! -d "$STAGING_DIR/qml/QtQuick" ]; then
-              cp -r "$qml_path"/* "$STAGING_DIR/qml/" 2>/dev/null || true
-            fi
-          done
-          
-          # Копируем зависимости Qt библиотек
-          for lib in "$STAGING_DIR/bin"/libQt6*.so*; do
-            if [ -f "$lib" ]; then
-              ldd "$lib" 2>/dev/null | grep -v "libQt6" | awk '{print $3}' | while read dep; do
-                if [ -f "$dep" ] && [[ "$dep" == *"lib"* ]] && [[ ! "$dep" == *"libc"* ]] && [[ ! "$dep" == *"libpthread"* ]]; then
-                  cp "$dep" "$STAGING_DIR/bin/" 2>/dev/null || true
-                fi
-              done
-            fi
-          done
-          
-          # Копируем FluidSynth библиотеки из vcpkg
           echo "Copying FluidSynth dependencies..."
           VCPKG_ROOT="${{ github.workspace }}/vcpkg"
           VCPKG_INSTALLED="$VCPKG_ROOT/installed/x64-linux/lib"
@@ -136,7 +91,6 @@ jobs:
             find "$VCPKG_INSTALLED" -name "libfluidsynth.so*" -exec cp {} "$STAGING_DIR/bin/" \; 2>/dev/null || true
             echo "Copied FluidSynth libraries"
             
-            # Копируем зависимости FluidSynth
             ldd "$STAGING_DIR/bin/pimino" 2>/dev/null | grep -E "(libglib|libgthread|libgobject|libintl|libffi)" | awk '{print $3}' | while read dep; do
               if [ -f "$dep" ]; then
                 cp "$dep" "$STAGING_DIR/bin/" 2>/dev/null || true
@@ -144,7 +98,6 @@ jobs:
             done
           fi
           
-          # Копируем soundfont файл по умолчанию
           echo "Copying default soundfont..."
           mkdir -p "$STAGING_DIR/var"
           
@@ -223,58 +176,10 @@ jobs:
 
       - name: Deploy Qt dependencies
         shell: pwsh
-        env:
-          Qt6_DIR: ${{ env.Qt6_DIR }}
         run: |
-          $qtDir = "$env:Qt6_DIR"
-          $qtBin = "$qtDir\bin"
           $stagingBin = "staging\bin"
-          $stagingQml = "staging\qml"
-          $stagingPlugins = "staging\plugins"
-          
-          Write-Host "Qt6_DIR: $qtDir"
-          Write-Host "Qt Bin: $qtBin"
-          
-          # Создаем директории
-          New-Item -ItemType Directory -Force -Path $stagingBin | Out-Null
-          New-Item -ItemType Directory -Force -Path $stagingQml | Out-Null
-          New-Item -ItemType Directory -Force -Path $stagingPlugins | Out-Null
-          
-          # Копируем все необходимые Qt DLL
-          $qtDlls = @(
-            "Qt6Core.dll", "Qt6Gui.dll", "Qt6Qml.dll", "Qt6Quick.dll",
-            "Qt6QuickControls2.dll", "Qt6Svg.dll", "Qt6QmlModels.dll",
-            "Qt6QmlWorkerScript.dll", "Qt6Network.dll", "Qt6OpenGL.dll"
-          )
-          
-          foreach ($dll in $qtDlls) {
-            $src = "$qtBin\$dll"
-            if (Test-Path $src) {
-              Copy-Item $src -Destination $stagingBin -Force
-              Write-Host "Copied: $dll"
-            }
-          }
-          
-          # Копируем QML модули
-          $qmlSrc = "$qtDir\qml"
-          if (Test-Path $qmlSrc) {
-            Copy-Item -Recurse "$qmlSrc\*" -Destination $stagingQml -Force
-            Write-Host "Copied QML modules"
-          }
-          
-          # Копируем плагины
-          $pluginsSrc = "$qtDir\plugins"
-          if (Test-Path $pluginsSrc) {
-            Copy-Item -Recurse "$pluginsSrc\*" -Destination $stagingPlugins -Force
-            Write-Host "Copied plugins"
-          }
-          
-          # Используем windeployqt если доступен
-          $windeployqt = "$qtDir\bin\windeployqt.exe"
-          if (Test-Path $windeployqt) {
-            Write-Host "Running windeployqt..."
-            & $windeployqt --qmldir "$stagingQml" --no-translations "$stagingBin\pimino.exe"
-          }
+          # wndeployqt находится в пути установки Qt, который уже в PATH
+          windeployqt.exe --qmldir . "$stagingBin\pimino.exe"  
           
           # Копируем FluidSynth DLL из vcpkg
           Write-Host "Copying FluidSynth dependencies..."
