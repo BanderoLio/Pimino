@@ -59,13 +59,11 @@ Rectangle {
         NumberAnimation { duration: 100 }
     }
     
-    // Анимация нажатия
     scale: isPressed ? 0.97 : 1.0
     Behavior on scale {
         NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
     }
     
-    // Тень для белых клавиш
     Rectangle {
         anchors.fill: parent
         anchors.topMargin: 2
@@ -75,7 +73,6 @@ Rectangle {
         z: -1
     }
     
-    // Текст с нотами и клавишами
     Column {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: key.isBlack ? -5 : 0
@@ -114,7 +111,7 @@ Rectangle {
             key.isPressed = true
             key.pressed()
             if (onNoteOn) {
-                onNoteOn(midiNote, 100) // velocity = 100
+                onNoteOn(midiNote, 100)
             }
         }
         

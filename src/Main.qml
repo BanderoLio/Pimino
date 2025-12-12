@@ -89,30 +89,6 @@ ApplicationWindow {
                 TabButton { text: qsTr("Клавиатура") }
                 TabButton { text: qsTr("MIDI плеер") }
             }
-
-            Button {
-                id: closeButton
-                text: qsTr("✕")
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
-                onClicked: Qt.quit()
-                background: Rectangle {
-                    color: closeButton.pressed ? "#E06C75" : (closeButton.hovered ? "#C678DD" : "#3a3a3a")
-                    radius: 6
-                    border.color: "#555"
-                    border.width: 1
-                }
-                contentItem: Text {
-                    text: closeButton.text
-                    color: "#D4BE98"
-                    font.pixelSize: 18
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                ToolTip.visible: closeButton.hovered
-                ToolTip.text: qsTr("Закрыть приложение")
-            }
         }
 
         StackLayout {
@@ -251,8 +227,8 @@ ApplicationWindow {
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: selectedMidiFile !== "" ? "#D4BE98" : "#888"
-                        text: selectedMidiFile !== "" ? selectedMidiFile : qsTr("MIDI не выбран")
+                        color: root.selectedMidiFile !== "" ? "#D4BE98" : "#888"
+                        text: root.selectedMidiFile !== "" ? root.selectedMidiFile : qsTr("MIDI не выбран")
                     }
 
                     Text {
@@ -267,18 +243,30 @@ ApplicationWindow {
         }
     }
 
-    FileDialog {
-        id: soundFontDialog
+    FileDialog { id: soundFontDialog
         title: "Выберите SoundFont (.sf2)"
         nameFilters: ["SoundFont (*.sf2)"]
         onAccepted: {
-            const path = selectedFile.toString().replace("file://", "")
+            let path = selectedFile.toString().replace(/^file:\/\//, "")
+            if (path.match(/^\/[A-Z]:/)) {
+                path = path.substring(1)
+            }
             if (soundEngine.loadSoundFont(path)) {
                 root.selectedSoundFont = path
             }
-            root.focusKeyboard()
+            Qt.callLater(function() {
+                if (root.currentTab === 0) {
+                    root.focusKeyboard()
+                }
+            })
         }
-        onRejected: root.focusKeyboard()
+        onRejected: {
+            Qt.callLater(function() {
+                if (root.currentTab === 0) {
+                    root.focusKeyboard()
+                }
+            })
+        }
     }
 
     FileDialog {
@@ -286,12 +274,25 @@ ApplicationWindow {
         title: "Выберите MIDI файл"
         nameFilters: ["MIDI (*.mid *.midi)"]
         onAccepted: {
-            const path = selectedFile.toString().replace("file://", "")
-            if (soundEngine.loadMidiFile(path)) {
-                selectedMidiFile = path
+            let path = selectedFile.toString().replace(/^file:\/\//, "")
+            if (path.match(/^\/[A-Z]:/)) {
+                path = path.substring(1)
             }
-            root.focusKeyboard()
+            if (soundEngine.loadMidiFile(path)) {
+                root.selectedMidiFile = path
+            }
+            Qt.callLater(function() {
+                if (root.currentTab === 0) {
+                    root.focusKeyboard()
+                }
+            })
         }
-        onRejected: root.focusKeyboard()
+        onRejected: {
+            Qt.callLater(function() {
+                if (root.currentTab === 0) {
+                    root.focusKeyboard()
+                }
+            })
+        }
     }
 }

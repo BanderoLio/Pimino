@@ -9,7 +9,7 @@ pragma ComponentBehavior: Bound
 FocusScope {
     id: keyboard
     
-    property int currentOctave: 4 // C4 по умолчанию (средняя октава)
+    property int currentOctave: 4
     property int minOctave: 1
     property int maxOctave: 7
     property var controller: null
@@ -19,16 +19,13 @@ FocusScope {
     signal noteOff(int note)
     signal octaveChanged(int octave)
     
-    // Обработка изменения октавы - останавливаем все текущие ноты
     onCurrentOctaveChanged: {
-        // Останавливаем все активные MIDI ноты
         if (soundEngine) {
             for (let i = 0; i < activeMidiNotes.length; i++) {
                 soundEngine.noteOff(activeMidiNotes[i])
             }
         }
         
-        // Останавливаем все нажатые клавиши визуально
         const keysToRelease = Object.keys(pressedKeys)
         for (let i = 0; i < keysToRelease.length; i++) {
             const key = keysToRelease[i]
@@ -38,12 +35,9 @@ FocusScope {
             }
         }
         
-        // Очищаем списки - создаем новые объекты/массивы
         pressedKeys = {}
         activeMidiNotes = []
         
-        // Восстанавливаем фокус для обработки клавиатуры через Qt.callLater
-        // чтобы это произошло после завершения обработки события смены октавы
         Qt.callLater(function() {
             keyboard.forceActiveFocus()
         })
@@ -62,7 +56,7 @@ FocusScope {
         {note: "A", isBlack: false, keyboardKey: "H", octaveOffset: 0},
         {note: "A#", isBlack: true, keyboardKey: "U", octaveOffset: 0},
         {note: "B", isBlack: false, keyboardKey: "J", octaveOffset: 0},
-        {note: "C", isBlack: false, keyboardKey: "K", octaveOffset: 1}, // Следующая октава
+        {note: "C", isBlack: false, keyboardKey: "K", octaveOffset: 1},
         {note: "C#", isBlack: true, keyboardKey: "O", octaveOffset: 1},
         {note: "D", isBlack: false, keyboardKey: "L", octaveOffset: 1},
         {note: "D#", isBlack: true, keyboardKey: "P", octaveOffset: 1},
@@ -118,7 +112,6 @@ FocusScope {
     
     function handleKeyPress(keyText) {
         const keyUpper = keyText.toUpperCase()
-        // Убеждаемся, что pressedKeys инициализирован
         if (!pressedKeys || typeof pressedKeys !== 'object') {
             pressedKeys = {}
         }
@@ -130,11 +123,9 @@ FocusScope {
         if (keyInfo) {
             pressedKeys[keyUpper] = true
             const midiNote = noteToMidi(keyInfo.note, keyInfo.octaveOffset)
-            // Убеждаемся, что activeMidiNotes инициализирован
             if (!activeMidiNotes || !Array.isArray(activeMidiNotes)) {
                 activeMidiNotes = []
             }
-            // Добавляем MIDI ноту в список активных
             if (activeMidiNotes.indexOf(midiNote) === -1) {
                 activeMidiNotes.push(midiNote)
             }
@@ -156,7 +147,6 @@ FocusScope {
         if (keyInfo) {
             delete pressedKeys[keyUpper]
             const midiNote = noteToMidi(keyInfo.note, keyInfo.octaveOffset)
-            // Удаляем MIDI ноту из списка активных
             if (activeMidiNotes && Array.isArray(activeMidiNotes)) {
                 const noteIndex = activeMidiNotes.indexOf(midiNote)
                 if (noteIndex !== -1) {
@@ -230,10 +220,20 @@ FocusScope {
     }
 
     
-    // Фокус для обработки событий клавиатуры
     focus: true
     Keys.forwardTo: []
     Component.onCompleted: keyboard.forceActiveFocus()
+    
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        acceptedButtons: Qt.AllButtons
+        propagateComposedEvents: true
+        onPressed: (mouse) => {
+            keyboard.forceActiveFocus()
+            mouse.accepted = false
+        }
+    }
     
     Keys.onPressed: (event) => {
         if (!event.isAutoRepeat) {
@@ -298,7 +298,6 @@ FocusScope {
                     return 60
                 }
                 onNoteOn: (note, vel) => {
-                    // Добавляем MIDI ноту в список активных
                     if (keyboard.activeMidiNotes.indexOf(note) === -1) {
                         keyboard.activeMidiNotes.push(note)
                     }
@@ -308,7 +307,6 @@ FocusScope {
                     keyboard.noteOn(note, vel)
                 }
                 onNoteOff: (note) => {
-                    // Удаляем MIDI ноту из списка активных
                     const noteIndex = keyboard.activeMidiNotes.indexOf(note)
                     if (noteIndex !== -1) {
                         keyboard.activeMidiNotes.splice(noteIndex, 1)
@@ -363,7 +361,6 @@ FocusScope {
                     return 61
                 }
                 onNoteOn: (note, vel) => {
-                    // Добавляем MIDI ноту в список активных
                     if (keyboard.activeMidiNotes.indexOf(note) === -1) {
                         keyboard.activeMidiNotes.push(note)
                     }
@@ -373,7 +370,6 @@ FocusScope {
                     keyboard.noteOn(note, vel)
                 }
                 onNoteOff: (note) => {
-                    // Удаляем MIDI ноту из списка активных
                     const noteIndex = keyboard.activeMidiNotes.indexOf(note)
                     if (noteIndex !== -1) {
                         keyboard.activeMidiNotes.splice(noteIndex, 1)

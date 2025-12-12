@@ -23,6 +23,8 @@ int main(int argc, char *argv[]) {
   qDebug() << "main() - Qt version:" << QT_VERSION_STR;
 
   try {
+    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES); 
+
     QGuiApplication app(argc, argv);
     App application(app);
     qDebug() << "main() - App created, calling loadUI()";
