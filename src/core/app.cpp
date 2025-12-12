@@ -74,6 +74,19 @@ void App::loadUI() {
   QThread::msleep(200);
   QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
 
+  // Настраиваем пути к плагинам и QML перед загрузкой (важно для собранных
+  // архивов)
+  const QString appDir = QCoreApplication::applicationDirPath();
+  QStringList libPaths = QCoreApplication::libraryPaths();
+  libPaths.prepend(appDir + "/plugins");
+  libPaths.prepend(appDir + "/../plugins");
+  QCoreApplication::setLibraryPaths(libPaths);
+
+  m_engine.addImportPath("qrc:/");
+  m_engine.addImportPath("qrc:/qt/qml");
+  m_engine.addImportPath(appDir + "/qml");
+  m_engine.addImportPath(appDir + "/../qml");
+
   // ДИАГНОСТИКА: Проверяем import paths перед загрузкой
   qDebug() << "Qt QML engine ready, checking import paths...";
   QStringList importPaths = m_engine.importPathList();
