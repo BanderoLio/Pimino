@@ -91,9 +91,17 @@ jobs:
           cp "${{ github.workspace }}/src/icons/app_icon.svg" "$STAGING_DIR/share/icons/hicolor/scalable/apps/app_icon.svg"
           echo "Copied icon file"
           
-          # Запускаем linuxdeployqt с desktop файлом (без -appimage, так как создаем обычный пакет)
+          # Проверяем что бинарник существует
+          if [ ! -f "$STAGING_DIR/bin/pimino" ]; then
+            echo "Error: Binary not found at $STAGING_DIR/bin/pimino"
+            exit 1
+          fi
+          echo "Binary found at $STAGING_DIR/bin/pimino"
+          
+          # Запускаем linuxdeployqt с бинарником и desktop файлом
+          # linuxdeployqt должен запускаться из staging директории с относительными путями
           cd "$STAGING_DIR"
-          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" share/applications/pimino.desktop
+          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" bin/pimino -desktop-file=share/applications/pimino.desktop
           
           echo "Copying FluidSynth dependencies..."
           VCPKG_ROOT="${{ github.workspace }}/vcpkg"

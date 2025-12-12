@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Pimino
 Comment=Виртуальное пианино
-Exec=pimino
+Exec=bin/pimino
 Icon=app_icon
 Terminal=false
 Type=Application
