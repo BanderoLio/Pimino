@@ -79,6 +79,9 @@ jobs:
           
           STAGING_DIR="${{ github.workspace }}/staging"
           
+          BIN_DIR="$STAGING_DIR/bin"
+          APP_BINARY="$BIN_DIR/pimino"
+
           # Создаем структуру директорий для desktop файла и иконки
           mkdir -p "$STAGING_DIR/share/applications"
           mkdir -p "$STAGING_DIR/share/icons/hicolor/scalable/apps"
@@ -101,7 +104,7 @@ jobs:
           # Запускаем linuxdeployqt с desktop файлом напрямую
           # linuxdeployqt найдет бинарник по пути Exec в desktop файле
           cd "$STAGING_DIR"
-          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" share/applications/pimino.desktop
+          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" share/applications/pimino.desktop -executable="$APP_BINARY" 
           
           echo "Copying FluidSynth dependencies..."
           VCPKG_ROOT="${{ github.workspace }}/vcpkg"
