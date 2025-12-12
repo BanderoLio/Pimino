@@ -16,40 +16,7 @@ int main(int argc, char *argv[]) {
   // Настройка логирования перед созданием приложения
   QLoggingCategory::setFilterRules("qt.qml.debug=true");
 
-  // Настройка путей к плагинам/импортам для собранных архивов/инсталляторов
-  // Делается до создания QGuiApplication
-  {
-    QString appDir = QDir::cleanPath(QString::fromUtf8(argv[0]));
-    QFileInfo fi(appDir);
-    appDir = fi.absolutePath(); // обычно .../bin
-
-    // Плагины Qt (platforms, etc.)
-    qputenv("QT_PLUGIN_PATH", QByteArray((appDir + "/../plugins").toUtf8()));
-    qputenv("QT_QPA_PLATFORM_PLUGIN_PATH",
-            QByteArray((appDir + "/../plugins/platforms").toUtf8()));
-
-    // QML импорты
-    qputenv("QML_IMPORT_PATH", QByteArray((appDir + "/../qml").toUtf8()));
-    qputenv("QML2_IMPORT_PATH", QByteArray((appDir + "/../qml").toUtf8()));
-
-    // Библиотеки рядом с бинарём (чтобы не подхватывались системные)
-    QByteArray ldPath = QByteArray((appDir).toUtf8());
-    ldPath.append(":");
-    ldPath.append((appDir + "/../lib").toUtf8());
-    if (qEnvironmentVariableIsSet("LD_LIBRARY_PATH")) {
-      ldPath.append(":");
-      ldPath.append(qgetenv("LD_LIBRARY_PATH"));
-    }
-    qputenv("LD_LIBRARY_PATH", ldPath);
-
-    // Форсим xcb как более совместимый backend на Linux
-    if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
-      qputenv("QT_QPA_PLATFORM", QByteArray("xcb"));
-    }
-
-    // Если с драйвером OpenGL есть проблемы, можно форсить софт:
-    // qputenv("QT_QUICK_BACKEND", QByteArray("software"));
-  }
+  // Пути к плагинам/QML задаются через qt.conf в bin/
 
   qDebug() << "main() - Starting application";
   qDebug() << "main() - Qt version:" << QT_VERSION_STR;
@@ -58,7 +25,6 @@ int main(int argc, char *argv[]) {
     App application(argc, argv);
     qDebug() << "main() - App created, calling loadUI()";
 
-    // Небольшая задержка для стабилизации системы
     QThread::msleep(50);
 
     application.loadUI();

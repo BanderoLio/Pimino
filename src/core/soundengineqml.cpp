@@ -13,12 +13,7 @@ SoundEngineQML::SoundEngineQML(QObject *parent)
   // Это предотвращает падение при загрузке QML
 }
 
-SoundEngineQML::~SoundEngineQML() {
-  if (m_engine) {
-    delete m_engine;
-    m_engine = nullptr;
-  }
-}
+SoundEngineQML::~SoundEngineQML() = default;
 
 void SoundEngineQML::initialize() {
   if (m_engine) {
@@ -28,16 +23,13 @@ void SoundEngineQML::initialize() {
 
   qDebug() << "SoundEngineQML::initialize() - Creating SoundEngine";
   try {
-    m_engine = new SoundEngine();
-    if (!m_engine) {
-      qCritical() << "Failed to create SoundEngine";
-      return;
-    }
+    m_engine = std::make_unique<SoundEngine>();
 
     qDebug()
         << "SoundEngineQML::initialize() - SoundEngine created successfully";
 
     QStringList possiblePaths;
+    QStringList attemptedPaths;
 
     QString appPath = QCoreApplication::applicationDirPath();
     possiblePaths << appPath + "/../var/Yamaha CFX Grand.sf2";
@@ -53,19 +45,23 @@ void SoundEngineQML::initialize() {
     possiblePaths << homeDir + "/var/Yamaha CFX Grand.sf2";
 
     for (const QString &path : possiblePaths) {
+      attemptedPaths << path;
       QFileInfo fileInfo(path);
-      if (fileInfo.exists() && fileInfo.isFile()) {
-        qDebug() << "Trying to load soundfont from:" << path;
-        if (loadSoundFont(path)) {
-          qDebug() << "Soundfont loaded successfully from:" << path;
-          break;
-        }
+      if (!fileInfo.exists() || !fileInfo.isFile()) {
+        continue;
+      }
+
+      qDebug() << "Trying to load soundfont from:" << path;
+      if (loadSoundFont(path)) {
+        qDebug() << "Soundfont loaded successfully from:" << path;
+        break;
       }
     }
 
     if (!m_soundFontLoaded) {
-      qWarning() << "No soundfont loaded. Sound will not work. "
-                    "Please load a soundfont using loadSoundFont(path)";
+      qWarning() << "No soundfont loaded. Sound will not work.";
+      qWarning() << "Soundfont search paths tried:" << attemptedPaths;
+      qWarning() << "Please load a soundfont using loadSoundFont(path)";
     }
 
     m_midiPlayer = std::make_unique<FluidMidiPlayer>(m_engine->synth());
@@ -73,10 +69,10 @@ void SoundEngineQML::initialize() {
     qDebug() << "SoundEngineQML::initialize() - Initialization complete";
   } catch (const std::exception &e) {
     qCritical() << "Exception while creating SoundEngine:" << e.what();
-    m_engine = nullptr;
+    m_engine.reset();
   } catch (...) {
     qCritical() << "Unknown exception while creating SoundEngine";
-    m_engine = nullptr;
+    m_engine.reset();
   }
 }
 

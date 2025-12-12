@@ -47,8 +47,8 @@ signals:
   void midiPlayingChanged();
 
 private:
-  SoundEngine *m_engine;
-  bool m_soundFontLoaded;
+  std::unique_ptr<SoundEngine> m_engine{nullptr};
+  bool m_soundFontLoaded{false};
   QString m_soundFontPath;
 
   std::unique_ptr<FluidMidiPlayer> m_midiPlayer{nullptr};

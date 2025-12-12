@@ -38,8 +38,11 @@ void SoundEngine::setMidiPort(const char *portname) {
 }
 
 void SoundEngine::setMidiAutoconnect(bool val) {
-  fluid_settings_setint(m_settings.settings(), "midi.autoconnect", 1);
-  // FluidMidiPlayer p()
+  const int rc = fluid_settings_setint(m_settings.settings(),
+                                       "midi.autoconnect", val ? 1 : 0);
+  if (rc == FLUID_FAILED) {
+    qWarning() << "Failed to set midi.autoconnect to" << val;
+  }
 }
 
 const FluidSynth &SoundEngine::synth() { return m_synth; }
