@@ -63,6 +63,18 @@ ApplicationWindow {
             }
             MenuSeparator {}
             MenuItem {
+                enabled: false
+                text: {
+                    if (soundEngine.soundFontLoaded) {
+                        let path = soundEngine.soundFontPath
+                        let fileName = path.split(/[/\\]/).pop()
+                        return qsTr("SoundFont: ") + (fileName || path)
+                    }
+                    return qsTr("SoundFont: не загружен")
+                }
+            }
+            MenuSeparator {}
+            MenuItem {
                 text: qsTr("Выход")
                 onTriggered: Qt.quit()
             }
@@ -245,12 +257,19 @@ ApplicationWindow {
 
     FileDialog { id: soundFontDialog
         title: "Выберите SoundFont (.sf2)"
-        nameFilters: ["SoundFont (*.sf2)"]
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["SoundFont (*.sf2)", "All Files (*)"]
         onAccepted: {
-            let path = selectedFile.toString().replace(/^file:\/\//, "")
+            let fileUrl = selectedFile
+            if (!fileUrl) {
+                console.warn("No file selected")
+                return
+            }
+            let path = fileUrl.toString().replace(/^file:\/\//, "")
             if (path.match(/^\/[A-Z]:/)) {
                 path = path.substring(1)
             }
+            console.log("Loading SoundFont from:", path)
             if (soundEngine.loadSoundFont(path)) {
                 root.selectedSoundFont = path
             }
@@ -272,12 +291,19 @@ ApplicationWindow {
     FileDialog {
         id: midiDialog
         title: "Выберите MIDI файл"
-        nameFilters: ["MIDI (*.mid *.midi)"]
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["MIDI (*.mid *.midi)", "All Files (*)"]
         onAccepted: {
-            let path = selectedFile.toString().replace(/^file:\/\//, "")
+            let fileUrl = selectedFile
+            if (!fileUrl) {
+                console.warn("No file selected")
+                return
+            }
+            let path = fileUrl.toString().replace(/^file:\/\//, "")
             if (path.match(/^\/[A-Z]:/)) {
                 path = path.substring(1)
             }
+            console.log("Loading MIDI from:", path)
             if (soundEngine.loadMidiFile(path)) {
                 root.selectedMidiFile = path
             }
