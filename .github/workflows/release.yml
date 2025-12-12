@@ -37,7 +37,9 @@ jobs:
             git \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \
-            libxcb-xinerama0
+            libxcb-xinerama0 \
+            libxcb-cursor-dev \
+            libxcb-cursor0
 
       - name: Setup vcpkg
         uses: actions/checkout@v4
