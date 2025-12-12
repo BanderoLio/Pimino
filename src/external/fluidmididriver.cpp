@@ -17,6 +17,11 @@ FluidMidiDriver::FluidMidiDriver(const FluidSettings &settings,
   }
 }
 
-FluidMidiDriver::~FluidMidiDriver() { delete_fluid_midi_driver(m_mdriver); }
+FluidMidiDriver::~FluidMidiDriver() {
+  if (m_mdriver) {
+    delete_fluid_midi_driver(m_mdriver);
+    m_mdriver = nullptr;
+  }
+}
 
 fluid_midi_driver_t *FluidMidiDriver::mdriver() const { return m_mdriver; }
