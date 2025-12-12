@@ -98,10 +98,10 @@ jobs:
           fi
           echo "Binary found at $STAGING_DIR/bin/pimino"
           
-          # Запускаем linuxdeployqt с бинарником и desktop файлом
-          # linuxdeployqt должен запускаться из staging директории с относительными путями
+          # Запускаем linuxdeployqt с desktop файлом напрямую
+          # linuxdeployqt найдет бинарник по пути Exec в desktop файле
           cd "$STAGING_DIR"
-          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" bin/pimino -desktop-file=share/applications/pimino.desktop
+          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" share/applications/pimino.desktop
           
           echo "Copying FluidSynth dependencies..."
           VCPKG_ROOT="${{ github.workspace }}/vcpkg"
