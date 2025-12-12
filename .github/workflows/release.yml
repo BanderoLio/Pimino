@@ -79,10 +79,21 @@ jobs:
           
           STAGING_DIR="${{ github.workspace }}/staging"
           
-          cd "$STAGING_DIR/bin"
+          # Создаем структуру директорий для desktop файла и иконки
+          mkdir -p "$STAGING_DIR/share/applications"
+          mkdir -p "$STAGING_DIR/share/icons/hicolor/scalable/apps"
           
-          ../../linuxdeployqt-continuous-x86_64.AppImage pimino -appimage
+          # Копируем desktop файл
+          cp "${{ github.workspace }}/pimino.desktop" "$STAGING_DIR/share/applications/"
+          echo "Copied desktop file"
           
+          # Копируем иконку
+          cp "${{ github.workspace }}/src/icons/app_icon.svg" "$STAGING_DIR/share/icons/hicolor/scalable/apps/app_icon.svg"
+          echo "Copied icon file"
+          
+          # Запускаем linuxdeployqt с desktop файлом (без -appimage, так как создаем обычный пакет)
+          cd "$STAGING_DIR"
+          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" share/applications/pimino.desktop
           
           echo "Copying FluidSynth dependencies..."
           VCPKG_ROOT="${{ github.workspace }}/vcpkg"
