@@ -6,6 +6,10 @@ on:
       - 'v*'  # Запускается при создании тега вида v1.0.0
   workflow_dispatch:  # Позволяет запускать вручную
 
+permissions:
+  contents: write  # Необходимо для создания релизов
+  actions: read     # Для чтения артефактов
+
 jobs:
   build-linux:
     name: Build Linux
@@ -444,7 +448,9 @@ jobs:
             artifacts/windows/*
           draft: false
           prerelease: false
-          generate_notes: true
+          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
