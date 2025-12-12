@@ -72,7 +72,7 @@ jobs:
 
       - name: Deploy Qt dependencies
         run: |
-          wget github.com
+          wget https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           
           STAGING_DIR="${{ github.workspace }}/staging"
@@ -179,7 +179,8 @@ jobs:
         run: |
           $stagingBin = "staging\bin"
           # wndeployqt находится в пути установки Qt, который уже в PATH
-          windeployqt.exe --qmldir . "$stagingBin\pimino.exe"  
+          windeployqt.exe --qmldir . "$stagingBin\pimino.exe"
+          
           
           # Копируем FluidSynth DLL из vcpkg
           Write-Host "Copying FluidSynth dependencies..."
