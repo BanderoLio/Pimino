@@ -19,7 +19,7 @@
 
 ### SoundFont — обязателен для звука
 - **Зачем:** FluidSynth синтезирует звук только при наличии SoundFont (.sf2). Без него клавиши и MIDI будут без звука.
-- **Что скачать:** любой `.sf2`. Например, `Yamaha CFX Grand.sf2` (примерный источник: [Google Drive](https://drive.google.com/file/d/1GBRPH-VhSoovylYoa0K3jazhS4aTWQle/view?usp=drive_link)).
+- **Что скачать:** любой `.sf2`. Например, `Yamaha CFX Grand.sf2` (примерный источник: [Google Drive](https://drive.google.com/drive/folders/1UP15esorzv31cow5pkuRCNTvc_ua9D9i?usp=sharing)).
 - **Куда положить:**
   - Linux/Windows: поместите файл в папку `var` рядом с `pimino`/`pimino.exe` или укажите путь вручную.
 - **Как подключить в приложении:**
