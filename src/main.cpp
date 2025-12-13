@@ -1,36 +1,45 @@
 // Copyright (C) 2023 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
-#include <QCommandLineParser>
+#include <QCoreApplication>
+#include <QDir>
 #include <QGuiApplication>
-#include <QIcon>
-#include <QQmlApplicationEngine>
-#include <fluidsynth.h>
-#include <thread>
-
-#include <core/soundengine.h>
+#include <QLoggingCategory>
+#include <QThread>
+#include <qguiapplication.h>
 
 #include "core/app.h"
 
+// Включаем отладочные логи для QML
+Q_LOGGING_CATEGORY(qml, "qt.qml")
+
 int main(int argc, char *argv[]) {
-  App application(argc, argv);
-  SoundEngine sEngine{};
-  // this sf can be loaded from https://www.polyphone.io/en/soundfonts/pianos/513-yamaha-cfx-studio-grand-v2
-  sEngine.loadSoundFound("./var/Yamaha CFX Grand.sf2");
-  qDebug() << "Playing some notes...";
-  for (int i = 0; i < 12; ++i) {
-    int key = 60 + i;   // Middle C and up
-    int velocity = 100; // A moderate velocity
+  // Настройка логирования перед созданием приложения
+  QLoggingCategory::setFilterRules("qt.qml.debug=true");
 
-    sEngine.noteOn(key, velocity); // Channel 0, note, velocity
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(500)); // Play for 0.5 seconds
-    sEngine.noteOff(key);                // Stop the note
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(100)); // Short pause between notes
+  // Пути к плагинам/QML задаются через qt.conf в bin/
+
+  qDebug() << "main() - Starting application";
+  qDebug() << "main() - Qt version:" << QT_VERSION_STR;
+
+  try {
+    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES); 
+
+    QGuiApplication app(argc, argv);
+    App application(app);
+    qDebug() << "main() - App created, calling loadUI()";
+
+    QThread::msleep(50);
+
+    application.loadUI(app);
+    qDebug() << "main() - loadUI() completed, calling exec()";
+
+    return app.exec();
+  } catch (const std::exception &e) {
+    qCritical() << "Exception in main:" << e.what();
+    return 1;
+  } catch (...) {
+    qCritical() << "Unknown exception in main";
+    return 1;
   }
-
-  qDebug() << "Cleaning up...";
-  application.loadUI();
-  return application.exec();
 }

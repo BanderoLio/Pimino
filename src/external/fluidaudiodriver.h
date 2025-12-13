@@ -1,11 +1,8 @@
 #ifndef FLUIDAUDIODRIVER_H
 #define FLUIDAUDIODRIVER_H
 
-#include "fluidsettings.h"
-#include "fluidsynth.h"
-
-#include <fluidsynth.h>
-
+#include <external/fluidsettings.h>
+#include <external/fluidsynth.h>
 #include <stdexcept>
 
 class FluidAudioDriver {

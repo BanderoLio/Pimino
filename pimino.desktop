@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Pimino
+Comment=Виртуальное пианино
+Exec=pimino
+Icon=app_icon
+Terminal=false
+Type=Application
+Categories=AudioVideo;Music;
+StartupNotify=true
+

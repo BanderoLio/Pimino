@@ -8,6 +8,11 @@ FluidAudioDriver::FluidAudioDriver(const FluidSettings &settings,
   }
 }
 
-FluidAudioDriver::~FluidAudioDriver() { delete_fluid_audio_driver(m_adriver); }
+FluidAudioDriver::~FluidAudioDriver() {
+  if (m_adriver) {
+    delete_fluid_audio_driver(m_adriver);
+    m_adriver = nullptr;
+  }
+}
 
 fluid_audio_driver_t *FluidAudioDriver::adriver() const { return m_adriver; }

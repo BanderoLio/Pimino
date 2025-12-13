@@ -6,6 +6,7 @@ project(Pimino VERSION 1.0 LANGUAGES CXX)
 
 # Generate compile_commands.json for IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(QT_QML_GENERATE_QMLLS_INI ON)
 
 if (ANDROID OR IOS)
     message(FATAL_ERROR "Platform is not supported")
@@ -25,6 +26,7 @@ qt_add_executable(pimino
 
 # Add src directory to include path so generated files can find headers
 target_include_directories(pimino PRIVATE src)
+target_include_directories(pimino PRIVATE src/core)
 
 # Add FluidSynth include directories if needed
 if(TARGET FluidSynth::libfluidsynth)
@@ -44,44 +46,26 @@ else()
     message(WARNING "FluidSynth not found. Please install it via vcpkg: vcpkg install fluidsynth")
 endif()
 
-set_source_files_properties(src/qml/Colors.qml
-    PROPERTIES
-        QT_QML_SINGLETON_TYPE TRUE
-)
-
 qt_add_qml_module(pimino
     URI Pimino
     QML_FILES
         "src/Main.qml"
-        "src/qml/About.qml"
-        "src/qml/Colors.qml"
-        "src/qml/Editor.qml"
-        "src/qml/FileSystemView.qml"
-        "src/qml/MyMenu.qml"
-        "src/qml/MyMenuBar.qml"
-        "src/qml/Sidebar.qml"
-        "src/qml/ResizeButton.qml"
-        "src/qml/WindowDragHandler.qml"
+        "src/qml/PianoKey.qml"
+        "src/qml/PianoKeyboard.qml"
+        "src/qml/ControlPanel.qml"
     RESOURCES
-        "src/icons/folder_closed.svg"
-        "src/icons/folder_open.svg"
-        "src/icons/generic_file.svg"
-        "src/icons/globe.svg"
-        "src/icons/info_sign.svg"
-        "src/icons/light_bulb.svg"
-        "src/icons/read.svg"
-        "src/icons/resize.svg"
-        "src/icons/qt_logo.svg"
         "src/icons/app_icon.svg"
     SOURCES
-        src/filesystemmodel.cpp
-        src/filesystemmodel.h
-        src/linenumbermodel.cpp
-        src/linenumbermodel.h
         src/core/app.h
+        src/core/soundengineqml.h
+        src/core/soundengineqml.cpp
+        src/core/pianocontroller.cpp
+        src/core/pianocontroller.h
         src/external/fluidsettings.h src/external/fluidsettings.cpp
         src/external/fluidsynth.h src/external/fluidsynth.cpp
         src/external/fluidaudiodriver.h src/external/fluidaudiodriver.cpp
+        src/external/fluidmididriver.h src/external/fluidmididriver.cpp
+        src/external/fluidmidiplayer.h src/external/fluidmidiplayer.cpp
         src/core/soundengine.h src/core/soundengine.cpp
         SOURCES src/external/exceptions/soundfontexception.h src/external/exceptions/soundfontexception.cpp
 )

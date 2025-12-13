@@ -1,0 +1,489 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Запускается при создании тега вида v1.0.0
+  workflow_dispatch:  # Позволяет запускать вручную
+
+permissions:
+  contents: write  # Необходимо для создания релизов
+  actions: read     # Для чтения артефактов
+
+jobs:
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-22.04 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          arch: 'linux_gcc_64'
+          aqtversion: '>=3.3.0'
+          cache: 'true'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libfluidsynth-dev \
+            git \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libxcb-xinerama0 \
+            libxcb-cursor-dev \
+            libxcb-cursor0 \
+            libpcre3-dev
+
+      - name: Setup vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+
+      - name: Install vcpkg dependencies
+        run: |
+          cd vcpkg
+          ./bootstrap-vcpkg.sh
+          ./vcpkg install fluidsynth:x64-linux
+
+      - name: Configure CMake
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+          Qt6_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" \
+            -G Ninja
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install to staging directory
+        run: |
+          mkdir -p staging
+          cmake --install build --prefix ${{ github.workspace }}/staging
+
+      - name: Deploy Qt dependencies
+        run: |
+          wget https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+          
+          STAGING_DIR="${{ github.workspace }}/staging"
+          
+          BIN_DIR="$STAGING_DIR/bin"
+          APP_BINARY="$BIN_DIR/pimino"
+
+          # Создаем структуру директорий для desktop файла и иконки
+          mkdir -p "$STAGING_DIR/share/applications"
+          mkdir -p "$STAGING_DIR/share/icons/hicolor/scalable/apps"
+          
+          # Копируем desktop файл
+          cp "${{ github.workspace }}/pimino.desktop" "$STAGING_DIR/share/applications/"
+          echo "Copied desktop file"
+          
+          # Копируем иконку
+          cp "${{ github.workspace }}/src/icons/app_icon.svg" "$STAGING_DIR/share/icons/hicolor/scalable/apps/app_icon.svg"
+          echo "Copied icon file"
+          
+          # Проверяем что бинарник существует
+          if [ ! -f "$STAGING_DIR/bin/pimino" ]; then
+            echo "Error: Binary not found at $STAGING_DIR/bin/pimino"
+            exit 1
+          fi
+          echo "Binary found at $STAGING_DIR/bin/pimino"
+          
+          # Запускаем linuxdeployqt с desktop файлом напрямую
+          # linuxdeployqt найдет бинарник по пути Exec в desktop файле
+          cd "$STAGING_DIR"
+          "${{ github.workspace }}/linuxdeployqt-continuous-x86_64.AppImage" share/applications/pimino.desktop -executable="$APP_BINARY" 
+          
+          echo "Copying FluidSynth dependencies..."
+          VCPKG_ROOT="${{ github.workspace }}/vcpkg"
+          VCPKG_INSTALLED="$VCPKG_ROOT/installed/x64-linux/lib"
+          
+          if [ -d "$VCPKG_INSTALLED" ]; then
+            # Копируем libfluidsynth
+            find "$VCPKG_INSTALLED" -name "libfluidsynth.so*" -exec cp {} "$STAGING_DIR/bin/" \; 2>/dev/null || true
+            echo "Copied FluidSynth libraries"
+            
+            ldd "$STAGING_DIR/bin/pimino" 2>/dev/null | grep -E "(libglib|libgthread|libgobject|libintl|libffi)" | awk '{print $3}' | while read dep; do
+              if [ -f "$dep" ]; then
+                cp "$dep" "$STAGING_DIR/bin/" 2>/dev/null || true
+              fi
+            done
+          fi
+          
+          echo "Copying default soundfont..."
+          mkdir -p "$STAGING_DIR/var"
+          
+          SOUNDFONT_SOURCE="${{ github.workspace }}/var/Yamaha CFX Grand.sf2"
+          if [ -f "$SOUNDFONT_SOURCE" ]; then
+            cp "$SOUNDFONT_SOURCE" "$STAGING_DIR/var/" 2>/dev/null || true
+            echo "Copied default soundfont to: $STAGING_DIR/var/"
+          else
+            echo "Warning: Default soundfont not found at: $SOUNDFONT_SOURCE"
+          fi
+
+      - name: Create source archive
+        run: |
+          git archive --format=tar.gz --prefix=pimino-${{ github.ref_name }}-src/ -o pimino-${{ github.ref_name }}-src.tar.gz HEAD
+
+      - name: Create Linux archive
+        run: |
+          cd ${{ github.workspace }}/staging
+          tar -czf ${{ github.workspace }}/pimino-${{ github.ref_name }}-linux-x64.tar.gz *
+          cd ${{ github.workspace }}
+          zip -r pimino-${{ github.ref_name }}-linux-x64.zip staging/*
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: |
+            pimino-${{ github.ref_name }}-linux-x64.tar.gz
+            pimino-${{ github.ref_name }}-linux-x64.zip
+            pimino-${{ github.ref_name }}-src.tar.gz
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+
+      - name: Install vcpkg dependencies
+        run: |
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install fluidsynth
+
+      - name: Setup Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.8.0'
+          arch: 'win64_msvc2022_64'
+          aqtversion: '>=3.3.0'
+          cache: 'true'
+
+      - name: Configure CMake
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+          Qt6_DIR: ${{ env.Qt6_DIR }}
+        run: |
+          cmake -B build -S . `
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake `
+            -DCMAKE_BUILD_TYPE=Release `
+            -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install to staging directory
+        run: |
+          mkdir staging
+          cmake --install build --prefix ${{ github.workspace }}\staging
+
+      - name: Deploy Qt dependencies
+        shell: pwsh
+        run: |
+          $stagingBin = "staging\bin"
+          # wndeployqt находится в пути установки Qt, который уже в PATH
+          windeployqt.exe --qmldir . "$stagingBin\pimino.exe"
+          
+          
+          # Копируем FluidSynth DLL из vcpkg
+          Write-Host "Copying FluidSynth dependencies..."
+          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          $vcpkgInstalled = "$vcpkgRoot\installed\x64-windows\bin"
+          
+          if (Test-Path $vcpkgInstalled) {
+            # Ищем все FluidSynth DLL (включая libfluidsynth-3.dll)
+            $fluidsynthDlls = Get-ChildItem -Path $vcpkgInstalled -Filter "*fluidsynth*.dll" -ErrorAction SilentlyContinue
+            if ($fluidsynthDlls) {
+              foreach ($dll in $fluidsynthDlls) {
+                Copy-Item $dll.FullName -Destination $stagingBin -Force
+                Write-Host "Copied FluidSynth DLL: $($dll.Name)"
+              }
+            } else {
+              Write-Warning "No FluidSynth DLLs found in $vcpkgInstalled"
+            }
+            
+            # Также проверяем MSVC зависимости
+            $msvcDeps = @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+            foreach ($dep in $msvcDeps) {
+              $depPath = Join-Path $vcpkgInstalled $dep
+              if (Test-Path $depPath) {
+                Copy-Item $depPath -Destination $stagingBin -Force
+                Write-Host "Copied MSVC dependency: $dep"
+              }
+            }
+          } else {
+            Write-Warning "vcpkg installed directory not found at: $vcpkgInstalled"
+            Write-Host "Trying alternative locations..."
+            # Пробуем найти в других местах
+            $altPaths = @(
+              "$vcpkgRoot\installed\x64-windows\debug\bin",
+              "$env:VCPKG_ROOT\installed\x64-windows\bin"
+            )
+            foreach ($altPath in $altPaths) {
+              if (Test-Path $altPath) {
+                $fluidsynthDlls = Get-ChildItem -Path $altPath -Filter "*fluidsynth*.dll" -ErrorAction SilentlyContinue
+                if ($fluidsynthDlls) {
+                  foreach ($dll in $fluidsynthDlls) {
+                    Copy-Item $dll.FullName -Destination $stagingBin -Force
+                    Write-Host "Copied FluidSynth DLL from alternative location: $($dll.Name)"
+                  }
+                  break
+                }
+              }
+            }
+          }
+          
+          # Проверяем что DLL скопированы
+          $fluidsynthCheck = Get-ChildItem -Path $stagingBin -Filter "*fluidsynth*.dll" -ErrorAction SilentlyContinue
+          if ($fluidsynthCheck) {
+            Write-Host "FluidSynth DLLs verified in staging:"
+            foreach ($dll in $fluidsynthCheck) {
+              Write-Host "  - $($dll.Name)"
+            }
+          } else {
+            Write-Error "FluidSynth DLLs not found in staging/bin after copy operation!"
+          }
+          
+          # Копируем soundfont файл по умолчанию
+          Write-Host "Copying default soundfont..."
+          $stagingVar = "staging\var"
+          New-Item -ItemType Directory -Force -Path $stagingVar | Out-Null
+          
+          $soundfontSource = "${{ github.workspace }}\var\Yamaha CFX Grand.sf2"
+          if (Test-Path $soundfontSource) {
+            Copy-Item $soundfontSource -Destination $stagingVar -Force
+            Write-Host "Copied default soundfont to: $stagingVar"
+          } else {
+            Write-Warning "Default soundfont not found at: $soundfontSource"
+          }
+
+      - name: Create source archive
+        run: |
+          git archive --format=zip --prefix=pimino-${{ github.ref_name }}-src/ -o pimino-${{ github.ref_name }}-src.zip HEAD
+
+      - name: Create Windows archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path staging\* -DestinationPath pimino-${{ github.ref_name }}-windows-x64.zip -Force
+
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          # Устанавливаем NSIS через Chocolatey или напрямую
+          Write-Host "Installing NSIS..."
+          
+          # Проверяем наличие Chocolatey
+          if (Get-Command choco -ErrorAction SilentlyContinue) {
+            Write-Host "Using Chocolatey to install NSIS"
+            choco install nsis -y
+          } else {
+            Write-Host "Chocolatey not found, installing NSIS manually"
+            # Используем прямой URL к установщику NSIS 3.09
+            $nsisUrl = "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/PortableGit-2.43.0-64-bit.7z.exe"
+            # Правильный URL для NSIS 3.09
+            $nsisUrl = "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09-setup.exe"
+            $nsisInstaller = "$env:TEMP\nsis-3.09-setup.exe"
+            
+            # Скачиваем установщик с повторными попытками
+            Write-Host "Downloading NSIS installer from: $nsisUrl"
+            $maxRetries = 3
+            $retryCount = 0
+            $downloadSuccess = $false
+            
+            while ($retryCount -lt $maxRetries -and -not $downloadSuccess) {
+              try {
+                Invoke-WebRequest -Uri $nsisUrl -OutFile $nsisInstaller -UseBasicParsing -TimeoutSec 300
+                if (Test-Path $nsisInstaller -and (Get-Item $nsisInstaller).Length -gt 0) {
+                  $downloadSuccess = $true
+                  Write-Host "NSIS installer downloaded successfully"
+                } else {
+                  throw "Downloaded file is empty or invalid"
+                }
+              } catch {
+                $retryCount++
+                Write-Host "Download attempt $retryCount failed: $_"
+                if ($retryCount -lt $maxRetries) {
+                  Start-Sleep -Seconds 5
+                }
+              }
+            }
+            
+            if (-not $downloadSuccess) {
+              Write-Error "Failed to download NSIS installer after $maxRetries attempts"
+              exit 1
+            }
+            
+            # Устанавливаем NSIS в тихом режиме
+            Write-Host "Installing NSIS..."
+            $installProcess = Start-Process -FilePath $nsisInstaller -ArgumentList "/S" -Wait -PassThru -NoNewWindow
+            
+            if ($installProcess.ExitCode -ne 0) {
+              Write-Warning "NSIS installer exited with code: $($installProcess.ExitCode)"
+            }
+            
+            # Проверяем установку и добавляем NSIS в PATH
+            $nsisPath = "C:\Program Files (x86)\NSIS"
+            if (Test-Path "$nsisPath\makensis.exe") {
+              $env:PATH = "$nsisPath;$env:PATH"
+              Write-Host "NSIS installed successfully to: $nsisPath"
+            } else {
+              # Пробуем альтернативный путь
+              $altPath = "C:\Program Files\NSIS"
+              if (Test-Path "$altPath\makensis.exe") {
+                $nsisPath = $altPath
+                $env:PATH = "$nsisPath;$env:PATH"
+                Write-Host "NSIS found at alternative path: $nsisPath"
+              } else {
+                Write-Error "NSIS installation failed - makensis.exe not found"
+                exit 1
+              }
+            }
+          }
+          
+          # Проверяем установку
+          $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+          if ($makensis) {
+            Write-Host "NSIS installed successfully"
+            & makensis.exe /VERSION
+          } else {
+            Write-Host "Adding NSIS to PATH and checking again..."
+            $env:PATH = "C:\Program Files (x86)\NSIS;$env:PATH"
+            $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+            if ($makensis) {
+              Write-Host "NSIS found after PATH update"
+            } else {
+              Write-Error "NSIS not found in PATH"
+              exit 1
+            }
+          }
+
+      - name: Create NSIS installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $workspace = "${{ github.workspace }}"
+          $stagingDir = "$workspace\staging"
+          $installerScript = "$workspace\installer.nsi"
+          
+          Write-Host "Creating installer with version: $version"
+          Write-Host "Staging directory: $stagingDir"
+          Write-Host "Workspace: $workspace"
+          
+          # Убеждаемся что NSIS в PATH
+          $nsisPath = "C:\Program Files (x86)\NSIS"
+          if (Test-Path $nsisPath) {
+            $env:PATH = "$nsisPath;$env:PATH"
+            Write-Host "Added NSIS to PATH: $nsisPath"
+          }
+          
+          # Используем makensis из PATH или напрямую
+          $makensisPath = "$nsisPath\makensis.exe"
+          if (Test-Path $makensisPath) {
+            Write-Host "Using makensis from: $makensisPath"
+            & $makensisPath /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+          } else {
+            # Пробуем найти в PATH
+            $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+            if ($makensis) {
+              Write-Host "Using makensis from PATH: $($makensis.Path)"
+              & makensis.exe /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+            } else {
+              Write-Error "makensis.exe not found. NSIS may not be installed correctly."
+              Write-Host "Checking common NSIS locations..."
+              $commonPaths = @(
+                "C:\Program Files (x86)\NSIS\makensis.exe",
+                "C:\Program Files\NSIS\makensis.exe",
+                "$env:ProgramFiles\NSIS\makensis.exe",
+                "$env:ProgramFiles(x86)\NSIS\makensis.exe"
+              )
+              foreach ($path in $commonPaths) {
+                if (Test-Path $path) {
+                  Write-Host "Found makensis at: $path"
+                  & $path /DPRODUCT_VERSION="$version" /DSTAGING_DIR="$stagingDir" "$installerScript"
+                  break
+                }
+              }
+              if ($LASTEXITCODE -ne 0) {
+                exit 1
+              }
+            }
+          }
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "NSIS compilation failed"
+            exit 1
+          }
+          
+          # Проверяем что файл создан
+          $installerFile = "$workspace\pimino-$version-setup.exe"
+          if (Test-Path $installerFile) {
+            Write-Host "Installer created: $installerFile"
+            Get-Item $installerFile | Select-Object Name, Length
+          } else {
+            Write-Error "Installer file not found: $installerFile"
+            exit 1
+          }
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: |
+            pimino-${{ github.ref_name }}-windows-x64.zip
+            pimino-${{ github.ref_name }}-src.zip
+            pimino-${{ github.ref_name }}-setup.exe
+
+  release:
+    name: Create Release
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: artifacts/linux
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: artifacts/windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/linux/*
+            artifacts/windows/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
