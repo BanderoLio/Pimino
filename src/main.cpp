@@ -9,6 +9,7 @@
 #include <qguiapplication.h>
 
 #include "core/app.h"
+#include "qnamespace.h"
 
 // Включаем отладочные логи для QML
 Q_LOGGING_CATEGORY(qml, "qt.qml")
@@ -23,7 +24,7 @@ int main(int argc, char *argv[]) {
   qDebug() << "main() - Qt version:" << QT_VERSION_STR;
 
   try {
-    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES); 
+    QGuiApplication::setAttribute(Qt::AA_UseSoftwareOpenGL); 
 
     QGuiApplication app(argc, argv);
     App application(app);
