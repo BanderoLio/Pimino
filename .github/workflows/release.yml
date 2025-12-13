@@ -224,16 +224,6 @@ jobs:
               Write-Warning "No FluidSynth DLLs found in $vcpkgInstalled"
             }
             
-            # Копируем зависимости FluidSynth (MinGW)
-            $fluidsynthDeps = @("libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")
-            foreach ($dep in $fluidsynthDeps) {
-              $depPath = Join-Path $vcpkgInstalled $dep
-              if (Test-Path $depPath) {
-                Copy-Item $depPath -Destination $stagingBin -Force
-                Write-Host "Copied dependency: $dep"
-              }
-            }
-            
             # Также проверяем MSVC зависимости
             $msvcDeps = @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
             foreach ($dep in $msvcDeps) {
