@@ -270,7 +270,7 @@ ApplicationWindow {
                 path = path.substring(1)
             }
             console.log("Loading SoundFont from:", path)
-            if (soundEngine.loadSoundFont(path)) {
+            if (soundEngine.loadSoundFont(fileUrl)) {
                 root.selectedSoundFont = path
             }
             Qt.callLater(function() {
@@ -304,7 +304,7 @@ ApplicationWindow {
                 path = path.substring(1)
             }
             console.log("Loading MIDI from:", path)
-            if (soundEngine.loadMidiFile(path)) {
+            if (soundEngine.loadMidiFile(fileUrl)) {
                 root.selectedMidiFile = path
             }
             Qt.callLater(function() {

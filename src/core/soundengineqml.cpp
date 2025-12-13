@@ -1,4 +1,5 @@
 #include "soundengineqml.h"
+#include "qvariant.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
@@ -76,11 +77,12 @@ void SoundEngineQML::initialize() {
   }
 }
 
-bool SoundEngineQML::loadSoundFont(const QString &path) {
+bool SoundEngineQML::loadSoundFont(const QUrl &url) {
   if (!m_engine) {
     qWarning() << "SoundEngine is not initialized";
     return false;
   }
+  auto path = url.toLocalFile();
   m_soundFontLoaded = m_engine->loadSoundFound(path.toStdString());
   if (m_soundFontLoaded) {
     m_soundFontPath = path;
@@ -93,7 +95,7 @@ bool SoundEngineQML::loadSoundFont(const QString &path) {
   return m_soundFontLoaded;
 }
 
-bool SoundEngineQML::loadMidiFile(const QString &path) {
+bool SoundEngineQML::loadMidiFile(const QUrl &url) {
   if (!m_engine || !m_midiPlayer) {
     qWarning() << "SoundEngine or midi player not initialized";
     return false;
@@ -102,7 +104,7 @@ bool SoundEngineQML::loadMidiFile(const QString &path) {
   m_midiPlayer->wait();
   m_isMidiPlaying = false;
   emit midiPlayingChanged();
-
+  auto path = url.toLocalFile();
   m_midiLoaded = m_midiPlayer->loadFile(path.toStdString());
   m_midiFilePath = m_midiLoaded ? path : QString();
   emit midiLoadedChanged();

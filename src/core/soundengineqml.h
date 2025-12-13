@@ -6,6 +6,7 @@
 #include <QString>
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <memory>
+#include <QUrl>
 
 class FluidMidiPlayer;
 
@@ -31,8 +32,8 @@ public:
   QString midiFilePath() const { return m_midiFilePath; }
   bool isMidiPlaying() const { return m_isMidiPlaying; }
 
-  Q_INVOKABLE bool loadSoundFont(const QString &path);
-  Q_INVOKABLE bool loadMidiFile(const QString &path);
+  Q_INVOKABLE bool loadSoundFont(const QUrl &url);
+  Q_INVOKABLE bool loadMidiFile(const QUrl &url);
   Q_INVOKABLE bool playMidi();
   Q_INVOKABLE void stopMidi();
   Q_INVOKABLE void noteOn(int key, int velocity = 100, int channel = 0);
