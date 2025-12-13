@@ -9,9 +9,6 @@
 
 SoundEngineQML::SoundEngineQML(QObject *parent)
     : QObject(parent), m_engine(nullptr), m_soundFontLoaded(false) {
-  qDebug() << "SoundEngineQML::SoundEngineQML() - Constructor called";
-  // Инициализация отложена до Component.onCompleted в QML
-  // Это предотвращает падение при загрузке QML
 }
 
 SoundEngineQML::~SoundEngineQML() = default;
@@ -33,17 +30,24 @@ void SoundEngineQML::initialize() {
     QStringList attemptedPaths;
 
     QString appPath = QCoreApplication::applicationDirPath();
-    possiblePaths << appPath + "/../var/Yamaha CFX Grand.sf2";
-    possiblePaths << appPath + "/var/Yamaha CFX Grand.sf2";
+    QDir appDir(appPath);
+    possiblePaths << QDir::cleanPath(appDir.absoluteFilePath("../var/Yamaha CFX Grand.sf2"));
+    possiblePaths << QDir::cleanPath(appDir.absoluteFilePath("var/Yamaha CFX Grand.sf2"));
+    possiblePaths << QDir::cleanPath("var/Yamaha CFX Grand.sf2");
+    QDir currentDir(QDir::currentPath());
+    possiblePaths << QDir::cleanPath(currentDir.absoluteFilePath("var/Yamaha CFX Grand.sf2"));
 
-    possiblePaths << "var/Yamaha CFX Grand.sf2";
-    possiblePaths << QDir::currentPath() + "/var/Yamaha CFX Grand.sf2";
-
-    possiblePaths << QStandardPaths::locate(QStandardPaths::AppDataLocation,
-                                            "Yamaha CFX Grand.sf2");
+    QString appDataPath = QStandardPaths::locate(QStandardPaths::AppDataLocation,
+                                                 "Yamaha CFX Grand.sf2");
+    if (!appDataPath.isEmpty()) {
+      possiblePaths << QDir::cleanPath(appDataPath);
+    }
     QString homeDir =
         QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    possiblePaths << homeDir + "/var/Yamaha CFX Grand.sf2";
+    if (!homeDir.isEmpty()) {
+      QDir homeDirObj(homeDir);
+      possiblePaths << QDir::cleanPath(homeDirObj.absoluteFilePath("var/Yamaha CFX Grand.sf2"));
+    }
 
     for (const QString &path : possiblePaths) {
       attemptedPaths << path;
@@ -53,7 +57,8 @@ void SoundEngineQML::initialize() {
       }
 
       qDebug() << "Trying to load soundfont from:" << path;
-      if (loadSoundFont(path)) {
+      QUrl url = QUrl::fromLocalFile(QDir::cleanPath(path));
+      if (loadSoundFont(url)) {
         qDebug() << "Soundfont loaded successfully from:" << path;
         break;
       }
@@ -82,13 +87,18 @@ bool SoundEngineQML::loadSoundFont(const QUrl &url) {
     qWarning() << "SoundEngine is not initialized";
     return false;
   }
-  auto path = url.toLocalFile();
-  m_soundFontLoaded = m_engine->loadSoundFound(path.toStdString());
+  QString localPath = url.toLocalFile();
+  if (localPath.isEmpty()) {
+    qWarning() << "Invalid file URL:" << url;
+    return false;
+  }
+  QString nativePath = QDir::toNativeSeparators(QDir::cleanPath(localPath));
+  m_soundFontLoaded = m_engine->loadSoundFound(nativePath.toStdString());
   if (m_soundFontLoaded) {
-    m_soundFontPath = path;
-    qDebug() << "SoundFont loaded successfully:" << path;
+    m_soundFontPath = nativePath;
+    qDebug() << "SoundFont loaded:" << nativePath;
   } else {
-    qWarning() << "Failed to load SoundFont:" << path;
+    qWarning() << "Failed to load SoundFont:" << nativePath;
   }
   emit soundFontLoadedChanged();
   emit soundFontPathChanged();
@@ -104,9 +114,14 @@ bool SoundEngineQML::loadMidiFile(const QUrl &url) {
   m_midiPlayer->wait();
   m_isMidiPlaying = false;
   emit midiPlayingChanged();
-  auto path = url.toLocalFile();
-  m_midiLoaded = m_midiPlayer->loadFile(path.toStdString());
-  m_midiFilePath = m_midiLoaded ? path : QString();
+  QString localPath = url.toLocalFile();
+  if (localPath.isEmpty()) {
+    qWarning() << "Invalid file URL:" << url;
+    return false;
+  }
+  QString nativePath = QDir::toNativeSeparators(QDir::cleanPath(localPath));
+  m_midiLoaded = m_midiPlayer->loadFile(nativePath.toStdString());
+  m_midiFilePath = m_midiLoaded ? nativePath : QString();
   emit midiLoadedChanged();
   emit midiFilePathChanged();
   return m_midiLoaded;
